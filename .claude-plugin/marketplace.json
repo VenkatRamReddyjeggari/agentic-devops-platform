@@ -1,0 +1,13 @@
+{
+  "name": "agentic-devops",
+  "owner": {
+    "name": "Venkat Ram Reddy"
+  },
+  "plugins": [
+    {
+      "name": "platform-ops",
+      "source": "./plugin",
+      "description": "Guardrailed platform-engineering agent for AWS/EKS: skills, subagents, commands and hooks."
+    }
+  ]
+}

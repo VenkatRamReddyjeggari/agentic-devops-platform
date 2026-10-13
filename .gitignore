@@ -1,0 +1,23 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+*secret*.tfvars
+
+# Claude Code local-only files
+.claude/settings.local.json
+.claude/logs/
+CLAUDE.local.md
+
+# Python
+__pycache__/
+.pytest_cache/
+.venv/

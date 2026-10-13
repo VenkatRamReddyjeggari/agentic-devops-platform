@@ -1,0 +1,9 @@
+{
+  "name": "platform-ops",
+  "version": "0.1.0",
+  "description": "Platform engineering agent for AWS/EKS teams: Terraform and Kubernetes review skills, security and IaC reviewer subagents, deploy/drift/postmortem commands, and guardrail hooks that block destructive infra commands.",
+  "author": {
+    "name": "Venkat Ram Reddy"
+  },
+  "keywords": ["devops", "terraform", "kubernetes", "eks", "helm", "devsecops", "sre"]
+}
