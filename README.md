@@ -144,7 +144,7 @@ CRITICAL | Deployment/bad:web | privileged container
 Claude Code, `jq`, Python 3.12, and (for full checks) Terraform ≥ 1.6, Helm 3, kubeconform, Trivy.
 
 ```bash
-git clone https://github.com/<you>/agentic-devops-platform && cd agentic-devops-platform
+git clone https://github.com/VenkatRamReddyjeggari/agentic-devops-platform && cd agentic-devops-platform
 export GITHUB_PAT=<fine-grained token>   # for the GitHub MCP server
 make check                               # tests, fmt, validate, lint, policy, hook tests
 claude                                   # start the agent in this repo
@@ -160,7 +160,7 @@ See [`docs/demo-walkthrough.md`](docs/demo-walkthrough.md) for scripted demos:
 
 ### Install the plugin in another repo
 ```bash
-/plugin marketplace add <you>/agentic-devops-platform
+/plugin marketplace add VenkatRamReddyjeggari/agentic-devops-platform
 /plugin install platform-ops@agentic-devops
 ```
 
@@ -179,3 +179,5 @@ AWS (VPC, EKS, IRSA, KMS, ECR) · Terraform · Kubernetes · Helm · Docker · P
 
 ## Author
 **Venkat Ram Reddy** · DevOps / Platform Engineer · AWS Certified DevOps Engineer – Professional · CKA
+
+[GitHub](https://github.com/VenkatRamReddyjeggari) · [LinkedIn](https://www.linkedin.com/in/venkatreddyj)
