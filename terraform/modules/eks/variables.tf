@@ -24,6 +24,17 @@ variable "endpoint_public_access" {
   default     = false
 }
 
+variable "endpoint_public_access_cidrs" {
+  description = "CIDRs allowed to reach the public Kubernetes API (only used when endpoint_public_access is true)"
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = !contains(var.endpoint_public_access_cidrs, "0.0.0.0/0")
+    error_message = "Do not open the Kubernetes API to 0.0.0.0/0; list specific CIDRs (VPN, office, CI egress)."
+  }
+}
+
 variable "node_instance_types" {
   description = "EC2 instance types for the managed node group"
   type        = list(string)

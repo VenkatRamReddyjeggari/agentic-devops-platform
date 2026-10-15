@@ -38,3 +38,17 @@ def test_create_order_validation(client, payload):
 
 def test_missing_order(client):
     assert client.get("/orders/99999").status_code == 404
+
+
+def test_concurrent_creates_get_unique_ids(client):
+    from concurrent.futures import ThreadPoolExecutor
+
+    def create(i: int) -> int:
+        with app.test_client() as c:
+            return c.post("/orders", json={"item": f"item-{i}"}).json["id"]
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        ids = list(pool.map(create, range(50)))
+    assert len(set(ids)) == 50
+    listed = {o["id"] for o in client.get("/orders").json}
+    assert set(ids) <= listed

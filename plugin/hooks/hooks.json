@@ -21,7 +21,7 @@
         ]
       },
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|NotebookEdit|Bash",
         "hooks": [
           {
             "type": "command",
