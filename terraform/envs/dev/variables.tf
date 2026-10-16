@@ -25,3 +25,15 @@ variable "cluster_version" {
   type        = string
   default     = "1.31"
 }
+
+variable "orders_api_namespace" {
+  description = "Kubernetes namespace orders-api is deployed to (helm -n)"
+  type        = string
+  default     = "orders-api"
+}
+
+variable "orders_api_release" {
+  description = "Helm release name for orders-api; the chart names its ServiceAccount after it"
+  type        = string
+  default     = "orders-api"
+}

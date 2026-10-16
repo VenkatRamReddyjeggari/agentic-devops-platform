@@ -7,3 +7,13 @@ output "kubeconfig_command" {
   description = "Command to configure kubectl for this cluster"
   value       = "aws eks update-kubeconfig --region ${var.region} --name ${module.eks.cluster_name}"
 }
+
+output "orders_table_name" {
+  description = "DynamoDB table for orders-api (chart env.ORDERS_TABLE)"
+  value       = module.orders_table.table_name
+}
+
+output "orders_api_role_arn" {
+  description = "IRSA role for orders-api (chart serviceAccount annotation eks.amazonaws.com/role-arn)"
+  value       = module.orders_table.role_arn
+}
