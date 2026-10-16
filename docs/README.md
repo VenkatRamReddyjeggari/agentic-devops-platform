@@ -12,6 +12,7 @@ engineering work behind code-enforced guardrails.
 | [Deployment guide](deployment.md) | Stand the platform up in AWS and deploy the app, from an empty account |
 | [CI/CD](ci-cd.md) | Know what runs on every PR and how to reproduce it locally |
 | [Claude Code setup](claude-code.md) | Understand the agent: guardrails, skills, subagents, commands, plugin |
+| [Live test on AWS](live-test.md) | Test against real DynamoDB and IAM for about $0, and record it |
 | [Operations runbook](operations.md) | Check health, troubleshoot, roll back, estimate cost, tear down |
 | [Development guide](development.md) | Set up a laptop, run tests, follow repo conventions, open a PR |
 | [Repository security](repository-security.md) | Apply the GitHub settings that protect `main`, secrets and Actions |

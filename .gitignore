@@ -24,3 +24,6 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# Rendered demo recordings (demo/tapes/*.tape)
+demo-videos/

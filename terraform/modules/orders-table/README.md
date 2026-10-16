@@ -13,9 +13,10 @@ DynamoDB table for orders-api plus the IRSA role its pods assume to use it.
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `table_name` | string | — | Table name; also prefixes the role name |
-| `oidc_provider_arn` | string | — | `module.eks.oidc_provider_arn` |
-| `namespace` | string | — | Namespace orders-api runs in |
-| `service_account` | string | — | ServiceAccount name (the Helm release name) |
+| `oidc_provider_arn` | string | `null` | `module.eks.oidc_provider_arn`; enables the IRSA trust |
+| `namespace` | string | `null` | Namespace orders-api runs in (required with `oidc_provider_arn`) |
+| `service_account` | string | `null` | ServiceAccount name, the Helm release name (required with `oidc_provider_arn`) |
+| `trusted_role_arns` | list(string) | `[]` | Extra IAM principals allowed to assume the role (live tests) |
 | `kms_key_arn` | string | `null` | CMK for encryption; null = AWS-managed key |
 | `deletion_protection` | bool | `true` | Block table deletion |
 | `tags` | map(string) | `{}` | Extra tags |
