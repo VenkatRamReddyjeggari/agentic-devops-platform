@@ -2,6 +2,7 @@
 
 ```
 terraform/
+├── bootstrap/          # once per account: state bucket + KMS key, lock table, ECR, GitHub OIDC + CI role (local state)
 ├── modules/
 │   ├── vpc/            # wraps terraform-aws-modules/vpc/aws ~> 5.0
 │   ├── eks/            # wraps terraform-aws-modules/eks/aws ~> 20.0
@@ -11,7 +12,8 @@ terraform/
     └── prod/           # same layout; protected (hooks ask a human before any edit)
 ```
 
-Each environment root calls the modules in order `vpc → eks → orders_table`. Provider
+Each environment root calls the modules in order `vpc → eks → orders_table`; dev also
+installs Argo CD and the orders-api Application (`argocd.tf`) with the Helm provider. Provider
 `hashicorp/aws ~> 5.0` (locked to 5.100.0 in `.terraform.lock.hcl`), Terraform `>= 1.6`.
 
 ## Conventions
@@ -26,6 +28,32 @@ These come from `CLAUDE.md` and the `terraform-module` skill, and are checked in
 - Least-privilege IAM scoped to specific ARNs; encryption on by default.
 - New modules go into dev first; prod changes only via PR with plan output.
 - Accepted Trivy findings carry an inline `#trivy:ignore:<ID>` with a justification.
+
+## Root: `bootstrap`
+
+Run once per account, before any environment. Local state (it creates the remote-state bucket).
+
+| Resource | Details |
+|---|---|
+| `aws_s3_bucket.state` | `<name_prefix>-tfstate-<account-id>`; versioning, SSE-KMS with a dedicated rotating key (`alias/<name_prefix>-tfstate`), public access blocked, TLS-only bucket policy |
+| `aws_dynamodb_table.lock` | `<name_prefix>-tflock`, key `LockID`, on-demand, PITR |
+| `aws_ecr_repository.app` | `orders-api`; immutable tags, scan on push, lifecycle keeps the last `ecr_keep_images` (30) |
+| `aws_iam_openid_connect_provider.github` | `token.actions.githubusercontent.com` (or looked up if `create_github_oidc_provider = false`) |
+| `aws_iam_role.ci` | `<name_prefix>-github-ci`; trusted only for `repo:<github_repository>:ref:refs/heads/<release_branch>`; may only push/pull that ECR repository (+ `GetAuthorizationToken`) |
+
+| Input | Default |
+|---|---|
+| `region` | `us-east-1` |
+| `name_prefix` | `platform` |
+| `ecr_repository` | `orders-api` |
+| `ecr_keep_images` | `30` |
+| `github_repository` | `VenkatRamReddyjeggari/agentic-devops-platform` |
+| `release_branch` | `main` |
+| `create_github_oidc_provider` | `true` |
+
+Outputs: `state_bucket`, `lock_table`, `ecr_repository_url`, `ci_role_arn`.
+Accepted LOW findings: `AWS-0089` (bucket access logging), `AWS-0025` (lock table CMK),
+`AWS-0033` (ECR CMK).
 
 ## Module: `vpc`
 
@@ -63,7 +91,7 @@ CoreDNS, kube-proxy, VPC CNI and EKS Pod Identity Agent; one managed node group
 `general` labelled `workload=general`; cluster-creator admin access. A `check` block
 fails the plan if the public endpoint is on with an empty allow-list.
 
-Outputs: `cluster_name`, `cluster_endpoint`, `oidc_provider_arn`.
+Outputs: `cluster_name`, `cluster_endpoint`, `cluster_certificate_authority_data`, `oidc_provider_arn`.
 
 Accepted findings: `AWS-0104` (nodes need egress via NAT to pull images and reach AWS
 APIs) in the module; `AWS-0040` (public API endpoint) in dev only.
@@ -99,7 +127,10 @@ Outputs: `table_name`, `table_arn`, `role_arn`. Accepted finding: `AWS-0025`
 | `cluster_version` | `1.31` | `1.31` | |
 | `api_allowed_cidrs` | **required** | (n/a) | dev only; specific CIDRs, `0.0.0.0/0` rejected |
 | `orders_api_namespace` | `orders-api` | `orders-api` | Must match `helm -n` |
-| `orders_api_release` | `orders-api` | `orders-api` | Must match the Helm release name |
+| `orders_api_release` | `orders-api` | `orders-api` | Must match the Helm release name (dev: the Argo CD Application name) |
+| `ecr_repository` | `orders-api` | (n/a) | Looked up with a data source; created by bootstrap |
+| `gitops_repo_url` | this GitHub repo | (n/a) | Repository Argo CD pulls from |
+| `gitops_revision` | `main` | (n/a) | Branch/tag Argo CD tracks |
 
 ### Outputs
 
@@ -109,13 +140,26 @@ Outputs: `table_name`, `table_arn`, `role_arn`. Accepted finding: `AWS-0025`
 | `kubeconfig_command` | `aws eks update-kubeconfig …` to configure kubectl |
 | `orders_table_name` | Chart `ordersTable.name` (dev passes it with `--set`; prod has it in `values-prod.yaml`) |
 | `orders_api_role_arn` | Chart ServiceAccount annotation `eks.amazonaws.com/role-arn` |
+| `argocd_ui_command` / `argocd_password_command` | dev only: open the Argo CD UI and print the admin password |
+
+### Argo CD (dev)
+
+`argocd.tf` installs chart `argo-cd` 10.9.6 (Argo CD v3.5.3; Dex and notifications off)
+into namespace `argocd`, then chart `argocd-apps` 2.0.6 with one Application named after
+`orders_api_release`. The Application renders `charts/orders-api` with `values.yaml` +
+`values-dev.yaml` and a `valuesObject` carrying the ECR repository URL, the IRSA role ARN
+and the table name. Sync is automated (`prune`, `selfHeal`, `CreateNamespace=true`).
+
+The Helm provider authenticates with `aws_eks_cluster_auth` (a short-lived token from the
+caller's AWS credentials), so whoever runs `terraform apply` must be able to reach the
+cluster API, i.e. be inside `api_allowed_cidrs`.
 
 ### State
 
 `backend.tf` stores state in S3 (`platform/<env>/terraform.tfstate`, encrypted) with a
-DynamoDB lock table. The bucket and table names are **placeholders**
-(`REPLACE-ME-tfstate`, `REPLACE-ME-tflock`); create them once and replace the names
-([deployment guide](deployment.md#1-bootstrap-terraform-state)).
+DynamoDB lock table, both created by `terraform/bootstrap`. The names in `backend.tf` are
+placeholders (`REPLACE-ME-tfstate`, `REPLACE-ME-tflock`); replace them or pass
+`-backend-config` at init ([deployment guide](deployment.md#2-point-dev-at-the-state-bucket)).
 
 ## Validate locally
 

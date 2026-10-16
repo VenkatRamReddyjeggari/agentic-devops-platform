@@ -8,8 +8,10 @@ skills, subagents, hooks, commands and MCP. Architecture diagram: `README.md`.
 - `app/` – orders-api (Flask) + Dockerfile + pytest tests
 - `charts/orders-api/` – Helm chart (`values.yaml` = dev, `values-prod.yaml` = prod)
 - `terraform/modules/` – reusable modules (`vpc`, `eks`)
-- `terraform/envs/dev|prod/` – environment roots (remote state, per-env tfvars)
-- `.github/workflows/` – CI (`ci.yml`) and the `@claude` PR assistant (`claude.yml`)
+- `terraform/bootstrap/` – once-per-account state bucket, ECR, GitHub OIDC CI role (local state)
+- `terraform/envs/dev|prod/` – environment roots (remote state, per-env tfvars); dev installs Argo CD
+- `charts/orders-api/values-dev.yaml` – dev image tag, bumped by `release.yml`; Argo CD deploys it
+- `.github/workflows/` – CI (`ci.yml`), image release (`release.yml`) and the `@claude` PR assistant (`claude.yml`)
 - `.claude/` – Claude Code config: skills, agents, commands, hooks, settings
 - `plugin/` – the same Claude Code setup packaged as an installable plugin
 

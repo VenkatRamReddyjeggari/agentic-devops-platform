@@ -134,10 +134,11 @@ CRITICAL | Deployment/bad:web | privileged container
 ├── app/                          # orders-api (Flask) + Dockerfile + tests
 ├── charts/orders-api/            # Helm chart, dev + prod values
 ├── terraform/
+│   ├── bootstrap/                # once per account: state, ECR, GitHub OIDC role
 │   ├── modules/{vpc,eks}/        # wrappers over terraform-aws-modules
 │   ├── modules/orders-table/     # DynamoDB table + IRSA role for orders-api
 │   └── envs/{dev,prod}/          # env roots, S3 backend, default_tags
-├── .github/workflows/            # ci.yml, claude.yml
+├── .github/workflows/            # ci.yml, release.yml, claude.yml
 ├── tests/test_hooks.sh
 └── docs/
 ```
@@ -164,22 +165,12 @@ make check                               # tests, fmt, validate, lint, policy, h
 claude                                   # start the agent in this repo
 ```
 
-### Deploy orders-api to dev
-After a human has applied `terraform/envs/dev` (the agent never applies), pass the table
-and IRSA role from Terraform to the chart:
-
-```bash
-TF="terraform -chdir=terraform/envs/dev"
-helm upgrade --install orders-api charts/orders-api -n orders-api --create-namespace \
-  --set image.tag=<git-sha> \
-  --set ordersTable.name="$($TF output -raw orders_table_name)" \
-  --set-string serviceAccount.annotations.eks\.amazonaws\.com/role-arn="$($TF output -raw orders_api_role_arn)"
-```
-
-Without `ordersTable.name` the pods stay **not ready** (`/readyz` returns 503) rather than
-serving errors. The IRSA role trusts only the `orders-api` ServiceAccount in the
-`orders-api` namespace; change `orders_api_namespace` / `orders_api_release` in Terraform if
-you deploy elsewhere.
+### Deploy to dev (GitOps)
+Dev is delivered by Argo CD: a human runs `terraform/bootstrap` once, sets two GitHub
+repository variables, and applies `terraform/envs/dev` (which installs Argo CD). From then
+on, every merge that touches `app/` builds an image in GitHub Actions, pushes it to ECR
+through OIDC (no stored keys) and commits the new tag; Argo CD deploys it. Step by step:
+[`docs/deployment.md`](docs/deployment.md).
 
 ### Demo scenarios
 See [`docs/demo-walkthrough.md`](docs/demo-walkthrough.md) for scripted demos:
@@ -206,7 +197,7 @@ See [`docs/demo-walkthrough.md`](docs/demo-walkthrough.md) for scripted demos:
 - **Secrets never in the repo.** MCP token via env var; hooks deny edits to `.env`, `*.pem`; permissions deny reading them.
 
 - **orders-api stores orders in DynamoDB.** On-demand billing (~$0 idle), point-in-time recovery and deletion protection on. Pods reach it through IRSA (no keys, no passwords), and the role may only `GetItem`/`PutItem`/`Scan` that one table. Pods are stateless, so replicas and gunicorn workers scale freely. Order IDs are UUIDs. `GET /orders` scans the whole table, which is fine at demo scale; add pagination and a GSI on `created_at` before real volume. Locally, tests run against a mocked DynamoDB (moto); point `AWS_ENDPOINT_URL` at DynamoDB Local to run the app by hand.
-- **Prod has its own table** (`platform-prod-orders`), set in `values-prod.yaml`. Deploy prod the same way as dev, with `-f charts/orders-api/values-prod.yaml` and the role ARN from `terraform/envs/prod` output `orders_api_role_arn`; the table name is already in the values file. Apply the prod Terraform before deploying the app, or the pods stay not-ready.
+- **Prod has its own table** (`platform-prod-orders`), set in `values-prod.yaml`. Prod has no GitOps wiring yet and its API is private; deploy it from inside the VPC with `-f charts/orders-api/values-prod.yaml` and the role ARN from `terraform/envs/prod` output `orders_api_role_arn` (the table name is already in the values file). Apply the prod Terraform before deploying the app, or the pods stay not-ready.
 
 ## Tech stack
 AWS (VPC, EKS, IRSA, DynamoDB, KMS, ECR) · Terraform · Kubernetes · Helm · Docker · Python/Flask · GitHub Actions · Trivy · kubeconform · Claude Code (skills, subagents, hooks, MCP, plugins)

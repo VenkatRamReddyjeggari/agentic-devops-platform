@@ -47,9 +47,9 @@ cd app && python app.py            # http://localhost:8080
 | Path | Contents |
 |---|---|
 | `app/` | `app.py`, `test_app.py`, `requirements.txt` (runtime + test deps), `Dockerfile` (installs runtime deps only) |
-| `charts/orders-api/` | `Chart.yaml`, `values.yaml` (dev), `values-prod.yaml` (prod, protected), `templates/` |
-| `terraform/` | `modules/{vpc,eks,orders-table}`, `envs/{dev,prod}` |
-| `.github/workflows/` | `ci.yml`, `claude.yml` |
+| `charts/orders-api/` | `Chart.yaml`, `values.yaml` (defaults), `values-dev.yaml` (dev image tag, bumped by CI), `values-prod.yaml` (prod, protected), `templates/` |
+| `terraform/` | `bootstrap/` (once per account), `modules/{vpc,eks,orders-table}`, `envs/{dev,prod}` (dev includes `argocd.tf`) |
+| `.github/workflows/` | `ci.yml`, `release.yml`, `claude.yml` |
 | `.claude/` | Agent config: `settings.json`, `hooks/`, `skills/`, `agents/`, `commands/` |
 | `plugin/` | Generated from `.claude/` by `make plugin`; never edit by hand |
 | `scripts/build-plugin.sh` | Plugin generator |
