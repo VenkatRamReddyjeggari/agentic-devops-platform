@@ -12,16 +12,3 @@ spec:
     - name: http
       port: {{ .Values.service.port }}
       targetPort: http
----
-{{- if .Values.serviceAccount.create }}
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: {{ include "orders-api.fullname" . }}
-  labels:
-    {{- include "orders-api.labels" . | nindent 4 }}
-  {{- with .Values.serviceAccount.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-{{- end }}
