@@ -29,3 +29,13 @@ module "eks" {
   node_max_size      = 10
   node_desired_size  = 3
 }
+
+module "orders_table" {
+  source = "../../modules/orders-table"
+
+  table_name          = "${local.name}-orders"
+  oidc_provider_arn   = module.eks.oidc_provider_arn
+  namespace           = var.orders_api_namespace
+  service_account     = var.orders_api_release
+  deletion_protection = true
+}

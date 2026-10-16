@@ -18,3 +18,8 @@ autoscaling:
 podDisruptionBudget:
   enabled: true
   minAvailable: 2
+
+# Must match terraform/envs/prod output orders_table_name. The IRSA role ARN
+# carries the account ID, so it is passed at deploy time, not stored here.
+ordersTable:
+  name: platform-prod-orders
