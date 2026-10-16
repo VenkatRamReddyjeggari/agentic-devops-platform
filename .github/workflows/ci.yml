@@ -27,7 +27,7 @@ jobs:
         root: [envs/dev, envs/prod, bootstrap]
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
       - run: terraform fmt -check -recursive terraform/
       - run: terraform -chdir=terraform/${{ matrix.root }} init -backend=false
       - run: terraform -chdir=terraform/${{ matrix.root }} validate
