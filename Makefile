@@ -12,7 +12,7 @@ tf-check:
 
 helm-check:
 	helm lint charts/orders-api
-	helm template orders-api charts/orders-api > /tmp/orders-dev.yaml
+	helm template orders-api charts/orders-api -f charts/orders-api/values-dev.yaml > /tmp/orders-dev.yaml
 	kubeconform -strict -summary /tmp/orders-dev.yaml
 	bash .claude/skills/k8s-manifest-review/scripts/check-manifests.sh /tmp/orders-dev.yaml
 

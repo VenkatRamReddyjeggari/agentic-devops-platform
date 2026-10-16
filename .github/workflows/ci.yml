@@ -24,13 +24,13 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        env: [dev, prod]
+        root: [envs/dev, envs/prod, bootstrap]
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
       - run: terraform fmt -check -recursive terraform/
-      - run: terraform -chdir=terraform/envs/${{ matrix.env }} init -backend=false
-      - run: terraform -chdir=terraform/envs/${{ matrix.env }} validate
+      - run: terraform -chdir=terraform/${{ matrix.root }} init -backend=false
+      - run: terraform -chdir=terraform/${{ matrix.root }} validate
 
   helm:
     runs-on: ubuntu-24.04
@@ -44,7 +44,7 @@ jobs:
       - run: helm lint charts/orders-api
       - name: Render and validate (dev + prod)
         run: |
-          helm template orders-api charts/orders-api > dev.yaml
+          helm template orders-api charts/orders-api -f charts/orders-api/values-dev.yaml > dev.yaml
           helm template orders-api charts/orders-api -f charts/orders-api/values-prod.yaml > prod.yaml
           kubeconform -strict -summary dev.yaml prod.yaml
       - name: Team policy checks (same script the Claude skill uses)

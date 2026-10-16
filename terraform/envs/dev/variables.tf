@@ -37,3 +37,21 @@ variable "orders_api_release" {
   type        = string
   default     = "orders-api"
 }
+
+variable "ecr_repository" {
+  description = "ECR repository holding the orders-api image (created by terraform/bootstrap)"
+  type        = string
+  default     = "orders-api"
+}
+
+variable "gitops_repo_url" {
+  description = "Git repository Argo CD pulls the orders-api chart from"
+  type        = string
+  default     = "https://github.com/VenkatRamReddyjeggari/agentic-devops-platform.git"
+}
+
+variable "gitops_revision" {
+  description = "Branch, tag or commit Argo CD tracks"
+  type        = string
+  default     = "main"
+}

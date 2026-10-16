@@ -17,3 +17,13 @@ output "orders_api_role_arn" {
   description = "IRSA role for orders-api (chart serviceAccount annotation eks.amazonaws.com/role-arn)"
   value       = module.orders_table.role_arn
 }
+
+output "argocd_ui_command" {
+  description = "Open the Argo CD UI on https://localhost:8443 (user admin; password from argocd_password_command)"
+  value       = "kubectl port-forward -n argocd svc/argocd-server 8443:443"
+}
+
+output "argocd_password_command" {
+  description = "Print the initial Argo CD admin password"
+  value       = "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+}

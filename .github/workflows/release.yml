@@ -1,0 +1,89 @@
+# Build the orders-api image, push it to ECR, and hand it to Argo CD by
+# committing the new tag to charts/orders-api/values-dev.yaml.
+#
+# Setup (once, after `terraform -chdir=terraform/bootstrap apply`): add repository
+# variables AWS_ROLE_ARN (output ci_role_arn) and AWS_REGION. Until AWS_ROLE_ARN
+# is set this workflow skips itself, so forks and fresh clones stay green.
+name: release
+
+on:
+  push:
+    branches: [main]
+    paths: ["app/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false # never interrupt a half-pushed release
+
+jobs:
+  build-push:
+    if: vars.AWS_ROLE_ARN != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write # OIDC: exchange a GitHub token for short-lived AWS credentials
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test before building
+        run: pip install -r app/requirements.txt && cd app && pytest -q
+
+      - id: meta
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # The repository uses immutable tags; the git SHA is unique per build.
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: app
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY || 'orders-api' }}:${{ steps.meta.outputs.tag }}
+          provenance: false
+
+  bump-dev:
+    needs: build-push
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # commit the new tag; pushes made with GITHUB_TOKEN do not re-trigger workflows
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - name: Point dev at the new image
+        env:
+          TAG: ${{ needs.build-push.outputs.tag }}
+        run: |
+          set -euo pipefail
+          f=charts/orders-api/values-dev.yaml
+          sed -i -E "s/^(  tag: ).*/\1\"${TAG}\"/; s/^(  APP_VERSION: ).*/\1\"${TAG}\"/" "$f"
+          grep -q "tag: \"${TAG}\"" "$f"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$f"
+          git diff --cached --quiet && { echo "already at ${TAG}"; exit 0; }
+          git commit -m "chore(release): deploy orders-api ${TAG} to dev"
+          for attempt in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((attempt * 5))
+          done
+          exit 1

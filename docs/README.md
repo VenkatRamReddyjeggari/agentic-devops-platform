@@ -23,7 +23,11 @@ engineering work behind code-enforced guardrails.
   credentials bound to one Kubernetes ServiceAccount): no keys, no passwords.
 - It runs on **EKS** in private subnets of a dedicated **VPC**, one cluster per
   environment (`dev`, `prod`), all defined in **Terraform**.
-- **Helm** deploys it; `values.yaml` is dev, `values-prod.yaml` is prod.
+- **Helm** packages it; `values.yaml` holds defaults, `values-dev.yaml` dev's image tag,
+  `values-prod.yaml` prod overrides.
+- **GitOps delivery (dev):** merging app changes builds the image in GitHub Actions,
+  pushes it to **ECR** and commits the new tag; **Argo CD** in the cluster pulls and
+  deploys it. Nothing outside the cluster needs access to the Kubernetes API.
 - **GitHub Actions** runs 6 checks on every PR: tests, Terraform (dev + prod), Helm
   and policy checks, hook tests, and a Trivy security scan.
 - **Claude Code** is configured as a platform engineer. Hooks and permissions stop it
@@ -37,8 +41,7 @@ not in the repo yet. [deployment.md](deployment.md) shows how to fill each gap.
 
 | Gap | Effect | Workaround |
 |---|---|---|
-| Terraform state bucket and lock table are placeholders (`REPLACE-ME` in `backend.tf`) | `terraform init` fails until replaced | [Bootstrap state](deployment.md#1-bootstrap-terraform-state) |
-| No ECR repository in Terraform; chart points at a placeholder account | Image pull fails | [Create ECR and push the image](deployment.md#3-build-and-push-the-image) |
-| CI tests but does not build or push images | Images are built by hand | Same as above |
+| `backend.tf` holds placeholder bucket/table names | `terraform init` needs the real names | [Point dev at the state bucket](deployment.md#2-point-dev-at-the-state-bucket) |
+| Prod has no GitOps wiring and a private API | Prod is code-only | [Production](deployment.md#production) |
 | No Ingress / AWS Load Balancer Controller; the Service is `ClusterIP` | Not reachable from outside the cluster | `kubectl port-forward` ([operations](operations.md#reach-the-api)) |
 | `GET /orders` scans the whole table | Slow and costly at large volume | Add pagination and a GSI before real traffic |

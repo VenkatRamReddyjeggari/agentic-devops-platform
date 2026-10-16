@@ -1,6 +1,6 @@
 # CI/CD
 
-Two workflows live in `.github/workflows/`. All jobs run on `ubuntu-24.04` (pinned so
+Three workflows live in `.github/workflows/`. All jobs run on `ubuntu-24.04` (pinned so
 GitHub's `ubuntu-latest` moves don't change the image without a PR).
 
 ## `ci.yml`: checks on every change
@@ -10,7 +10,7 @@ Triggers: every `pull_request`, and `push` to `main`. Permissions: `contents: re
 | Job | Steps | Fails when |
 |---|---|---|
 | **app** | Python 3.12 · `pip install -r app/requirements.txt ruff` · `ruff check app/` · `pytest -q` | Lint errors or any of the 19 tests fail |
-| **terraform** (matrix: `dev`, `prod`) | `terraform fmt -check -recursive` · `init -backend=false` · `validate` | Unformatted code or invalid configuration |
+| **terraform** (matrix: `envs/dev`, `envs/prod`, `bootstrap`) | `terraform fmt -check -recursive` · `init -backend=false` · `validate` | Unformatted code or invalid configuration |
 | **helm** | `helm lint` · render dev and prod · `kubeconform -strict` · `check-manifests.sh` on both renders | Lint errors, schema errors, or HIGH/CRITICAL policy findings |
 | **claude-config** | `shellcheck` on hooks and scripts · `tests/test_hooks.sh` (60 cases) · rebuild plugin and `git diff --exit-code plugin/` | Shell issues, a hook regression, or `plugin/` out of sync with `.claude/` |
 | **security** | Trivy `config` scan of the repo (`skip-dirs: **/.terraform`), HIGH/CRITICAL, exit code 1 | Any unaccepted HIGH/CRITICAL misconfiguration |
@@ -31,6 +31,25 @@ are held to the same rules.
 
 Any HIGH or CRITICAL finding fails the job.
 
+## `release.yml`: build, push, hand to Argo CD
+
+Triggers: pushes to `main` that touch `app/**`, and manual **Run workflow**. Skips itself
+until the `AWS_ROLE_ARN` repository variable is set. One release runs at a time.
+
+| Job | Steps |
+|---|---|
+| **build-push** | Checkout · run the tests · assume `AWS_ROLE_ARN` via GitHub OIDC (`id-token: write`, no stored keys) · ECR login · `docker buildx` for `linux/amd64` · push `orders-api:<first 12 chars of the git SHA>` (the repository's tags are immutable) |
+| **bump-dev** | Set `image.tag` and `env.APP_VERSION` in `charts/orders-api/values-dev.yaml` to that tag · commit as `github-actions[bot]` (`chore(release): deploy orders-api <tag> to dev`) · rebase and push to `main` (3 attempts) |
+
+Pushes made with `GITHUB_TOKEN` do not trigger other workflows, so the bump commit cannot
+loop. Argo CD picks it up and deploys. Third-party actions here are pinned by commit SHA.
+
+| Repository variable | Required | Value |
+|---|---|---|
+| `AWS_ROLE_ARN` | yes | `terraform/bootstrap` output `ci_role_arn` |
+| `AWS_REGION` | no | defaults to `us-east-1` |
+| `ECR_REPOSITORY` | no | defaults to `orders-api` |
+
 ## `claude.yml`: the `@claude` assistant
 
 Comment `@claude <request>` on an issue, PR or PR review. The workflow runs
@@ -50,7 +69,7 @@ make check          # test + tf-check (dev) + helm-check (dev) + hooks-test
 |---|---|
 | `make test` | `cd app && pytest -q` |
 | `make tf-check` | `terraform fmt -check`, `init -backend=false`, `validate` (dev) |
-| `make helm-check` | `helm lint`, render dev, `kubeconform`, `check-manifests.sh` |
+| `make helm-check` | `helm lint`, render dev (`values-dev.yaml`), `kubeconform`, `check-manifests.sh` |
 | `make hooks-test` | `bash tests/test_hooks.sh` |
 | `make plugin` | Rebuild `plugin/` from `.claude/` |
 
@@ -67,15 +86,8 @@ bash scripts/build-plugin.sh && git diff --exit-code plugin/
 trivy config --skip-dirs '**/.terraform' .
 ```
 
-## Delivery (not automated yet)
+## Delivery
 
-CI verifies code but does not build images or deploy. Today:
-
-1. Merge to `main` after CI is green.
-2. A human builds and pushes the image tagged with the git SHA
-   ([deployment guide §3](deployment.md#3-build-and-push-the-image)).
-3. A human runs `helm upgrade` ([§4](deployment.md#4-deploy-orders-api-to-dev)).
-
-The chart is GitOps-ready: an Argo CD `Application` pointing at `charts/orders-api` with
-per-environment values is the intended next step, together with a CI job that builds and
-pushes the image and bumps `image.tag`.
+Dev is delivered by GitOps: merge → `release.yml` builds, pushes and bumps the tag →
+Argo CD syncs ([deployment guide](deployment.md#everyday-flow)). Prod has no automated
+delivery yet ([deployment guide](deployment.md#production)).
