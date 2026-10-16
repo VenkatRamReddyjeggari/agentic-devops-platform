@@ -8,7 +8,15 @@ image:
 
 serviceAccount:
   create: true
-  annotations: {}         # eks.amazonaws.com/role-arn: <IRSA role ARN>
+  # Set at deploy time from Terraform (output orders_api_role_arn):
+  #   eks.amazonaws.com/role-arn: arn:aws:iam::<account>:role/platform-dev-orders-app
+  annotations: {}
+
+# DynamoDB table from Terraform (output orders_table_name). Empty on purpose:
+# pods stay not-ready until it is set, instead of silently using the wrong table.
+ordersTable:
+  name: ""
+  region: ""              # empty = use the region IRSA injects (the cluster's)
 
 service:
   type: ClusterIP

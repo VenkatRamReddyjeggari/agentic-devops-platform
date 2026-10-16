@@ -1,3 +1,5 @@
 flask==3.1.*
 gunicorn==23.*
+boto3==1.42.*
 pytest==8.*
+moto[dynamodb]==5.1.*

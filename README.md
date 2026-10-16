@@ -56,6 +56,7 @@ flowchart LR
     subgraph INFRA[Platform]
       TF[Terraform<br/>VPC + EKS] --> EKS[(EKS cluster)]
       HELM[Helm chart<br/>orders-api] --> EKS
+      EKS -- IRSA --> DDB[(DynamoDB<br/>orders table)]
       CI[GitHub Actions<br/>tests · fmt · kubeconform · trivy]
     end
 ```
@@ -134,6 +135,7 @@ CRITICAL | Deployment/bad:web | privileged container
 ├── charts/orders-api/            # Helm chart, dev + prod values
 ├── terraform/
 │   ├── modules/{vpc,eks}/        # wrappers over terraform-aws-modules
+│   ├── modules/orders-table/     # DynamoDB table + IRSA role for orders-api
 │   └── envs/{dev,prod}/          # env roots, S3 backend, default_tags
 ├── .github/workflows/            # ci.yml, claude.yml
 ├── tests/test_hooks.sh
@@ -155,6 +157,23 @@ make check                               # tests, fmt, validate, lint, policy, h
 #   terraform -chdir=terraform/envs/dev plan -var 'api_allowed_cidrs=["203.0.113.10/32"]'
 claude                                   # start the agent in this repo
 ```
+
+### Deploy orders-api to dev
+After a human has applied `terraform/envs/dev` (the agent never applies), pass the table
+and IRSA role from Terraform to the chart:
+
+```bash
+TF="terraform -chdir=terraform/envs/dev"
+helm upgrade --install orders-api charts/orders-api -n orders-api --create-namespace \
+  --set image.tag=<git-sha> \
+  --set ordersTable.name="$($TF output -raw orders_table_name)" \
+  --set-string serviceAccount.annotations.eks\.amazonaws\.com/role-arn="$($TF output -raw orders_api_role_arn)"
+```
+
+Without `ordersTable.name` the pods stay **not ready** (`/readyz` returns 503) rather than
+serving errors. The IRSA role trusts only the `orders-api` ServiceAccount in the
+`orders-api` namespace; change `orders_api_namespace` / `orders_api_release` in Terraform if
+you deploy elsewhere.
 
 ### Demo scenarios
 See [`docs/demo-walkthrough.md`](docs/demo-walkthrough.md) for scripted demos:
@@ -180,10 +199,11 @@ See [`docs/demo-walkthrough.md`](docs/demo-walkthrough.md) for scripted demos:
 - **Plugin generated, not hand-maintained.** `.claude/` is the source of truth; `scripts/build-plugin.sh` produces `plugin/` and CI fails if it drifts.
 - **Secrets never in the repo.** MCP token via env var; hooks deny edits to `.env`, `*.pem`; permissions deny reading them.
 
-- **orders-api is a demo service.** Orders live in process memory: gunicorn runs one worker (with threads) so a pod answers consistently, but each pod has its own data and loses it on restart. Back it with a real datastore (e.g. DynamoDB via IRSA) before running more than one replica for real.
+- **orders-api stores orders in DynamoDB.** On-demand billing (~$0 idle), point-in-time recovery and deletion protection on. Pods reach it through IRSA (no keys, no passwords), and the role may only `GetItem`/`PutItem`/`Scan` that one table. Pods are stateless, so replicas and gunicorn workers scale freely. Order IDs are UUIDs. `GET /orders` scans the whole table, which is fine at demo scale; add pagination and a GSI on `created_at` before real volume. Locally, tests run against a mocked DynamoDB (moto); point `AWS_ENDPOINT_URL` at DynamoDB Local to run the app by hand.
+- **Prod is not wired to DynamoDB yet.** `terraform/envs/prod` and `values-prod.yaml` are protected and change only through an approved PR. Until then, a prod deploy of this version stays not-ready.
 
 ## Tech stack
-AWS (VPC, EKS, IRSA, KMS, ECR) · Terraform · Kubernetes · Helm · Docker · Python/Flask · GitHub Actions · Trivy · kubeconform · Claude Code (skills, subagents, hooks, MCP, plugins)
+AWS (VPC, EKS, IRSA, DynamoDB, KMS, ECR) · Terraform · Kubernetes · Helm · Docker · Python/Flask · GitHub Actions · Trivy · kubeconform · Claude Code (skills, subagents, hooks, MCP, plugins)
 
 ## Author
 **Venkat Ram Reddy** · DevOps / Platform Engineer · AWS Certified DevOps Engineer – Professional · CKA
