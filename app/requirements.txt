@@ -1,4 +1,4 @@
 # Runtime dependencies: installed into the container image (see Dockerfile).
 flask==3.1.*
-gunicorn==23.*
+gunicorn==26.*
 boto3==1.43.*
