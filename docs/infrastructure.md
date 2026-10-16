@@ -9,7 +9,8 @@ terraform/
 │   └── orders-table/   # DynamoDB table + IRSA role for orders-api
 └── envs/
     ├── dev/            # backend.tf · providers.tf · main.tf · variables.tf · outputs.tf · .terraform.lock.hcl
-    └── prod/           # same layout; protected (hooks ask a human before any edit)
+    ├── prod/           # same layout; protected (hooks ask a human before any edit)
+    └── live-test/      # real DynamoDB + IAM only, no EKS (~$0), local state; see live-test.md
 ```
 
 Each environment root calls the modules in order `vpc → eks → orders_table`; dev also
@@ -101,9 +102,10 @@ APIs) in the module; `AWS-0040` (public API endpoint) in dev only.
 | Input | Type | Default | Description |
 |---|---|---|---|
 | `table_name` | string | (required) | Table name; also prefixes the role (`<table_name>-app`) |
-| `oidc_provider_arn` | string | (required) | `module.eks.oidc_provider_arn` |
-| `namespace` | string | (required) | Namespace orders-api runs in |
-| `service_account` | string | (required) | ServiceAccount name (= Helm release name) |
+| `oidc_provider_arn` | string | `null` | `module.eks.oidc_provider_arn`; enables the IRSA trust |
+| `namespace` | string | `null` | Namespace orders-api runs in (required with `oidc_provider_arn`) |
+| `service_account` | string | `null` | ServiceAccount name, i.e. the Helm release name (required with `oidc_provider_arn`) |
+| `trusted_role_arns` | list(string) | `[]` | Extra IAM principals allowed to `sts:AssumeRole` the app role (used by `envs/live-test`) |
 | `kms_key_arn` | string | `null` | Customer-managed key; `null` uses the AWS-managed key |
 | `deletion_protection` | bool | `true` | Block table deletion |
 | `tags` | map(string) | `{}` | Extra tags |

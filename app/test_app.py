@@ -105,6 +105,19 @@ def test_missing_order(client, order_id):
     assert client.get(f"/orders/{order_id}").status_code == 404
 
 
+def test_region_comes_from_aws_region(table, monkeypatch):
+    """boto3 ignores AWS_REGION on its own; the app must honour it (found by the live tests)."""
+    monkeypatch.delenv("AWS_DEFAULT_REGION")
+    monkeypatch.setenv("AWS_REGION", "eu-west-1")
+    assert app_module.OrderStore("t").client.meta.region_name == "eu-west-1"
+
+
+def test_region_falls_back_to_aws_default_region(table, monkeypatch):
+    monkeypatch.delenv("AWS_REGION", raising=False)
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "ap-south-1")
+    assert app_module.OrderStore("t").client.meta.region_name == "ap-south-1"
+
+
 def test_storage_error_returns_503(client, monkeypatch):
     def boom(*_args, **_kwargs):
         raise ClientError({"Error": {"Code": "ThrottlingException"}}, "Scan")

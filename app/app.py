@@ -37,7 +37,12 @@ class OrderStore:
     def __init__(self, table: str, client=None) -> None:
         self.table = table
         # boto3 clients are thread-safe; resources are not, so use the client.
-        self.client = client or boto3.client("dynamodb", config=_BOTO_CONFIG)
+        # boto3 reads only AWS_DEFAULT_REGION, but the chart (ordersTable.region) and
+        # most runtimes set AWS_REGION, so honour it explicitly. None falls back to
+        # boto3's normal lookup (AWS_DEFAULT_REGION, profile config).
+        self.client = client or boto3.client(
+            "dynamodb", config=_BOTO_CONFIG, region_name=os.getenv("AWS_REGION") or None
+        )
 
     @staticmethod
     def _to_order(item: dict) -> dict:
