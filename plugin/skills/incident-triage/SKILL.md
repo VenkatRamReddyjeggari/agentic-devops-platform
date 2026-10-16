@@ -30,7 +30,7 @@ Answer: what is broken, since when, what changed last (deploy, config, node, dep
 SEVERITY: SEV1/2/3
 IMPACT:   who/what is affected
 CAUSE:    most likely cause + evidence (log line / event)
-MITIGATE: exact command for a human to run (e.g. `helm rollback orders-api <rev> -n orders`)
+MITIGATE: exact command for a human to run (e.g. `helm rollback orders-api <rev> -n orders-api`)
 FOLLOW-UP: preventive fix (alert, limit change, test)
 ```
 After resolution, offer to draft a postmortem with `/postmortem`.
