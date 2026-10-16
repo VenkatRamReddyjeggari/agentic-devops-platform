@@ -15,7 +15,7 @@ engineering work behind code-enforced guardrails.
 | [Operations runbook](operations.md) | Check health, troubleshoot, roll back, estimate cost, tear down |
 | [Development guide](development.md) | Set up a laptop, run tests, follow repo conventions, open a PR |
 | [Repository security](repository-security.md) | Apply the GitHub settings that protect `main`, secrets and Actions |
-| [Demo walkthrough](demo-walkthrough.md) | Show the agent and its guardrails in a 10-minute demo |
+| [Demo walkthrough](demo-walkthrough.md) | Record or present a 12-minute demo: guardrails, PR + CI, GitHub rules, GitOps |
 
 ## The project in one minute
 
