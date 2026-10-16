@@ -2,8 +2,8 @@
 FROM python:3.12-slim AS build
 WORKDIR /src
 COPY requirements.txt .
-# Runtime deps only; pytest/moto from requirements.txt stay out of the image.
-RUN pip install --no-cache-dir --prefix=/install flask==3.1.* gunicorn==23.* boto3==1.42.*
+# Runtime deps only (requirements.txt); test deps live in requirements-dev.txt.
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=8080
