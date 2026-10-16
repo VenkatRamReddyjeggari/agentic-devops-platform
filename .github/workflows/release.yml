@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Test before building
-        run: pip install -r app/requirements.txt && cd app && pytest -q
+        run: pip install -r app/requirements-dev.txt && cd app && pytest -q
 
       - id: meta
         run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"

@@ -9,7 +9,7 @@ Triggers: every `pull_request`, and `push` to `main`. Permissions: `contents: re
 
 | Job | Steps | Fails when |
 |---|---|---|
-| **app** | Python 3.12 · `pip install -r app/requirements.txt ruff` · `ruff check app/` · `pytest -q` | Lint errors or any of the 19 tests fail |
+| **app** | Python 3.12 · `pip install -r app/requirements-dev.txt ruff` · `ruff check app/` · `pytest -q` | Lint errors or any of the 19 tests fail |
 | **terraform** (matrix: `envs/dev`, `envs/prod`, `bootstrap`) | `terraform fmt -check -recursive` · `init -backend=false` · `validate` | Unformatted code or invalid configuration |
 | **helm** | `helm lint` · render dev and prod · `kubeconform -strict` · `check-manifests.sh` on both renders | Lint errors, schema errors, or HIGH/CRITICAL policy findings |
 | **claude-config** | `shellcheck` on hooks and scripts · `tests/test_hooks.sh` (60 cases) · rebuild plugin and `git diff --exit-code plugin/` | Shell issues, a hook regression, or `plugin/` out of sync with `.claude/` |

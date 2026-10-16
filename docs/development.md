@@ -16,7 +16,7 @@
 git clone https://github.com/VenkatRamReddyjeggari/agentic-devops-platform
 cd agentic-devops-platform
 python3.12 -m venv .venv && source .venv/bin/activate
-pip install -r app/requirements.txt ruff
+pip install -r app/requirements-dev.txt ruff
 make check
 ```
 
@@ -24,7 +24,7 @@ If your system Python is older, run the tests with uv instead:
 
 ```bash
 pip install uv
-cd app && uv run --no-project --python 3.12 --with-requirements requirements.txt pytest -q
+cd app && uv run --no-project --python 3.12 --with-requirements requirements-dev.txt pytest -q
 ```
 
 ## Run the app locally
@@ -46,7 +46,7 @@ cd app && python app.py            # http://localhost:8080
 
 | Path | Contents |
 |---|---|
-| `app/` | `app.py`, `test_app.py`, `requirements.txt` (runtime + test deps), `Dockerfile` (installs runtime deps only) |
+| `app/` | `app.py`, `test_app.py`, `requirements.txt` (runtime deps, installed in the image), `requirements-dev.txt` (adds pytest and moto), `Dockerfile` |
 | `charts/orders-api/` | `Chart.yaml`, `values.yaml` (defaults), `values-prod.yaml` (prod, protected), `templates/`. Dev's image tag is on the `env/dev` branch, written by CI |
 | `terraform/` | `bootstrap/` (once per account), `modules/{vpc,eks,orders-table}`, `envs/{dev,prod}` (dev includes `argocd.tf`) |
 | `.github/workflows/` | `ci.yml`, `release.yml`, `claude.yml` |

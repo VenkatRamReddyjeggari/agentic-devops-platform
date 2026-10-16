@@ -52,8 +52,11 @@ The release workflow writes the dev image tag to `env/dev` with normal (non-forc
 | Push protection | Enable: blocks pushes that contain keys or tokens |
 | Code scanning (CodeQL) | Optional: "Default setup" scans the Python app |
 
-Version updates are configured in `.github/dependabot.yml` (pip, Docker, GitHub Actions,
-Terraform; weekly, minor and patch bumps grouped).
+Version updates are configured in `.github/dependabot.yml`: weekly, one grouped PR per
+ecosystem (pip, Docker, GitHub Actions, Terraform). Major versions of Python packages,
+Terraform providers/modules and the Python base image are ignored, because CI can't prove
+them (Terraform majors need a reviewed plan against a live environment). Security updates
+for vulnerable packages still arrive through Dependabot security updates.
 
 ## 4. GitHub Actions
 

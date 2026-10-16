@@ -1,0 +1,4 @@
+# Test and dev dependencies, on top of the runtime set.
+-r requirements.txt
+pytest==9.*
+moto[dynamodb]==5.2.*
