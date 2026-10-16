@@ -159,7 +159,7 @@ Claude Code, `jq`, Python 3.12, and (for full checks) Terraform ≥ 1.6, Helm 3,
 ```bash
 git clone https://github.com/VenkatRamReddyjeggari/agentic-devops-platform && cd agentic-devops-platform
 export GITHUB_PAT=<fine-grained token>   # for the GitHub MCP server
-make check                               # tests, fmt, validate, lint, policy, hook tests
+make check                               # tests, server smoke test, fmt, validate, lint, policy, hook tests
 # dev's public Kubernetes API is restricted to an allow-list; plan with e.g.
 #   terraform -chdir=terraform/envs/dev plan -var 'api_allowed_cidrs=["203.0.113.10/32"]'
 claude                                   # start the agent in this repo

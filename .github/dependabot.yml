@@ -1,34 +1,34 @@
-# Weekly dependency updates, grouped into one PR per ecosystem.
+# Weekly dependency updates.
 #
 # Policy: Dependabot proposes only what CI can prove.
-# - Major versions of Python packages, Terraform providers/modules and the Python
-#   base image are ignored: they need a deliberate upgrade (and, for Terraform, a
-#   reviewed plan against a live environment). Security updates still arrive for
-#   vulnerable packages via Dependabot security updates.
-# - GitHub Actions updates, majors included, are grouped: CI runs the new versions,
-#   so a green PR proves them.
+# - pip: unit tests cover the code and scripts/smoke-test.sh starts the real
+#   gunicorn server, so every update is testable. Minor/patch come as one grouped
+#   PR; majors come as separate PRs so one breaking major can't block the rest.
+# - GitHub Actions: grouped, majors included; CI runs the new versions itself.
+# - Terraform and the Python base image: CI only validates syntax, so major
+#   upgrades need a deliberate change with a reviewed plan. They are capped with
+#   explicit version ceilings: `update-types: semver-major` alone did not stop
+#   requirement-range bumps like `~> 5.0` -> `~> 6.68` (see PR #27).
+# Security updates for vulnerable packages are separate and not affected.
 version: 2
 updates:
   - package-ecosystem: pip
     directory: /app
     schedule:
       interval: weekly
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
     groups:
       python:
         patterns: ["*"]
+        update-types: [minor, patch]
 
   - package-ecosystem: docker
     directory: /app
     schedule:
       interval: weekly
     ignore:
-      # Python 3.12 -> 3.13 is a "minor" bump in image tags; change it together
-      # with CI and the release workflow, not on its own.
+      # Move to a new Python release together with CI and release.yml (3.12 today).
       - dependency-name: python
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+        versions: [">= 3.13"]
 
   - package-ecosystem: github-actions
     directory: /
@@ -47,8 +47,14 @@ updates:
     schedule:
       interval: weekly
     ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: hashicorp/aws
+        versions: [">= 6.0.0"]
+      - dependency-name: hashicorp/helm
+        versions: [">= 3.0.0"]
+      - dependency-name: terraform-aws-modules/eks/aws
+        versions: [">= 21.0.0"]
+      - dependency-name: terraform-aws-modules/vpc/aws
+        versions: [">= 6.0.0"]
     groups:
       terraform:
         patterns: ["*"]
