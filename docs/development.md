@@ -54,6 +54,7 @@ cd app && python app.py            # http://localhost:8080
 | `plugin/` | Generated from `.claude/` by `make plugin`; never edit by hand |
 | `scripts/build-plugin.sh` | Plugin generator |
 | `tests/test_hooks.sh` | Hook behavior tests |
+| `scripts/smoke-test.sh` | Starts the app with the Dockerfile's server command and checks it answers |
 | `docs/` | This documentation |
 
 Chart templates: `deployment.yaml` (Deployment), `service.yaml` (Service),

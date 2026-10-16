@@ -44,7 +44,7 @@ skills, subagents, hooks, commands and MCP. Architecture diagram: `README.md`.
 - Prod changes go through a PR; `terraform plan` output is attached to the PR
 
 ## Definition of done
-1. `make check` passes (tests, fmt, validate, lint, kubeconform)
+1. `make check` passes (tests, server smoke test, fmt, validate, lint, kubeconform)
 2. `trivy` reports no HIGH/CRITICAL findings (or they are documented in the PR)
 3. Docs updated (`README.md` or `docs/`) when behavior changes
 4. Commit message: `<type>(<scope>): <summary>` e.g. `feat(chart): add HPA`

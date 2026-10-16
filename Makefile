@@ -1,9 +1,12 @@
-.PHONY: check test tf-check helm-check hooks-test plugin
+.PHONY: check test smoke tf-check helm-check hooks-test plugin
 
-check: test tf-check helm-check hooks-test
+check: test smoke tf-check helm-check hooks-test
 
 test:
 	cd app && pytest -q
+
+smoke:
+	bash scripts/smoke-test.sh
 
 tf-check:
 	terraform fmt -check -recursive terraform/
