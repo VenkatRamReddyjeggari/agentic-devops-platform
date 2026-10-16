@@ -52,11 +52,19 @@ The release workflow writes the dev image tag to `env/dev` with normal (non-forc
 | Push protection | Enable: blocks pushes that contain keys or tokens |
 | Code scanning (CodeQL) | Optional: "Default setup" scans the Python app |
 
-Version updates are configured in `.github/dependabot.yml`: weekly, one grouped PR per
-ecosystem (pip, Docker, GitHub Actions, Terraform). Major versions of Python packages,
-Terraform providers/modules and the Python base image are ignored, because CI can't prove
-them (Terraform majors need a reviewed plan against a live environment). Security updates
-for vulnerable packages still arrive through Dependabot security updates.
+Version updates are configured in `.github/dependabot.yml`, weekly. The rule: Dependabot
+proposes only what CI can prove.
+
+| Ecosystem | Policy |
+|---|---|
+| pip | Minor/patch grouped into one PR; majors as separate PRs. All are proven by the unit tests plus `scripts/smoke-test.sh`, which starts the real gunicorn server |
+| GitHub Actions | Grouped, majors included; CI runs the new versions itself |
+| Terraform | Capped below `hashicorp/aws` 6, `hashicorp/helm` 3, `terraform-aws-modules/eks` 21 and `terraform-aws-modules/vpc` 6. CI only validates syntax, so majors need a deliberate upgrade with a reviewed `terraform plan` |
+| Docker base image | Capped below Python 3.13; upgrade it together with CI and `release.yml` |
+
+Explicit `versions` ceilings are used because `update-types: semver-major` did not stop
+requirement-range bumps such as `~> 5.0` → `~> 6.68`. Security updates for vulnerable
+packages are separate and not affected.
 
 ## 4. GitHub Actions
 

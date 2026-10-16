@@ -9,7 +9,7 @@ Triggers: every `pull_request`, and `push` to `main`. Permissions: `contents: re
 
 | Job | Steps | Fails when |
 |---|---|---|
-| **app** | Python 3.12 · `pip install -r app/requirements-dev.txt ruff` · `ruff check app/` · `pytest -q` | Lint errors or any of the 19 tests fail |
+| **app** | Python 3.12 · `pip install -r app/requirements-dev.txt ruff` · `ruff check app/` · `pytest -q` · `scripts/smoke-test.sh` (starts gunicorn with the Dockerfile's `CMD` and checks `/healthz`, `/readyz`, a 404 and a 400) | Lint errors, any of the 19 tests fail, or the real server doesn't boot and answer |
 | **terraform** (matrix: `envs/dev`, `envs/prod`, `bootstrap`) | `terraform fmt -check -recursive` · `init -backend=false` · `validate` | Unformatted code or invalid configuration |
 | **helm** | `helm lint` · render dev and prod · `kubeconform -strict` · `check-manifests.sh` on both renders | Lint errors, schema errors, or HIGH/CRITICAL policy findings |
 | **claude-config** | `shellcheck` on hooks and scripts · `tests/test_hooks.sh` (60 cases) · rebuild plugin and `git diff --exit-code plugin/` | Shell issues, a hook regression, or `plugin/` out of sync with `.claude/` |
@@ -63,12 +63,13 @@ contents, pull requests and issues (to push commits and comment), and `id-token:
 ## Reproduce CI locally
 
 ```bash
-make check          # test + tf-check (dev) + helm-check (dev) + hooks-test
+make check          # test + smoke + tf-check (dev) + helm-check (dev) + hooks-test
 ```
 
 | Make target | Runs |
 |---|---|
 | `make test` | `cd app && pytest -q` |
+| `make smoke` | `bash scripts/smoke-test.sh` (needs the runtime deps installed) |
 | `make tf-check` | `terraform fmt -check`, `init -backend=false`, `validate` (dev) |
 | `make helm-check` | `helm lint`, render dev, `kubeconform`, `check-manifests.sh` |
 | `make hooks-test` | `bash tests/test_hooks.sh` |

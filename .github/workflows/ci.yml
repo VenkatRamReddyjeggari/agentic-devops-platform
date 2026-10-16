@@ -19,6 +19,8 @@ jobs:
       - run: pip install -r app/requirements-dev.txt ruff
       - run: ruff check app/
       - run: cd app && pytest -q
+      - name: Server smoke test (runs the Dockerfile's CMD)
+        run: bash scripts/smoke-test.sh
 
   terraform:
     runs-on: ubuntu-24.04
