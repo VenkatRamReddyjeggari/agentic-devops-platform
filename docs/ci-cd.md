@@ -39,10 +39,11 @@ until the `AWS_ROLE_ARN` repository variable is set. One release runs at a time.
 | Job | Steps |
 |---|---|
 | **build-push** | Checkout · run the tests · assume `AWS_ROLE_ARN` via GitHub OIDC (`id-token: write`, no stored keys) · ECR login · `docker buildx` for `linux/amd64` · push `orders-api:<first 12 chars of the git SHA>` (the repository's tags are immutable) |
-| **bump-dev** | Set `image.tag` and `env.APP_VERSION` in `charts/orders-api/values-dev.yaml` to that tag · commit as `github-actions[bot]` (`chore(release): deploy orders-api <tag> to dev`) · rebase and push to `main` (3 attempts) |
+| **bump-dev** | Check out the `env/dev` branch (created as an empty orphan branch on the first run) · write `orders-api/values-dev.yaml` with `image.tag` and `env.APP_VERSION` set to that tag · commit as `github-actions[bot]` (`chore(release): deploy orders-api <tag> to dev`) · push to `env/dev` (3 attempts) |
 
-Pushes made with `GITHUB_TOKEN` do not trigger other workflows, so the bump commit cannot
-loop. Argo CD picks it up and deploys. Third-party actions here are pinned by commit SHA.
+The tag lives on `env/dev`, not `main`, so `main` can require pull requests with no bypass
+for bots ([repository security](repository-security.md)). Pushes made with `GITHUB_TOKEN`
+do not trigger other workflows, so the bump commit cannot loop. Argo CD picks it up and deploys. Third-party actions here are pinned by commit SHA.
 
 | Repository variable | Required | Value |
 |---|---|---|
@@ -69,7 +70,7 @@ make check          # test + tf-check (dev) + helm-check (dev) + hooks-test
 |---|---|
 | `make test` | `cd app && pytest -q` |
 | `make tf-check` | `terraform fmt -check`, `init -backend=false`, `validate` (dev) |
-| `make helm-check` | `helm lint`, render dev (`values-dev.yaml`), `kubeconform`, `check-manifests.sh` |
+| `make helm-check` | `helm lint`, render dev, `kubeconform`, `check-manifests.sh` |
 | `make hooks-test` | `bash tests/test_hooks.sh` |
 | `make plugin` | Rebuild `plugin/` from `.claude/` |
 

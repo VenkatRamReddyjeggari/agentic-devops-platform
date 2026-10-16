@@ -44,12 +44,12 @@ flowchart TB
 | VPC | `terraform/modules/vpc` | 3 private subnets (`/20`) for nodes, 3 public subnets (`/24`) for NAT and load balancers. Subnets are tagged for the AWS Load Balancer Controller. |
 | EKS | `terraform/modules/eks` | Managed control plane, one managed node group, IRSA enabled, Kubernetes secrets encrypted with KMS, core add-ons (CoreDNS, kube-proxy, VPC CNI, Pod Identity Agent). |
 | Bootstrap | `terraform/bootstrap` | Once per account: KMS-encrypted state bucket, lock table, ECR repository, GitHub OIDC provider and the CI role that may only push images. |
-| Argo CD | `terraform/envs/dev/argocd.tf` | Installed by Terraform (Helm); an Application syncs `charts/orders-api` from `main` into dev with automated prune and self-heal. |
+| Argo CD | `terraform/envs/dev/argocd.tf` | Installed by Terraform (Helm); a two-source Application renders `charts/orders-api` from `main` with dev values from the `env/dev` branch, with automated prune and self-heal. |
 | Orders table | `terraform/modules/orders-table` | DynamoDB table (on-demand, point-in-time recovery, deletion protection, encrypted) and the IRSA role orders-api assumes. |
 | orders-api | `app/` | Flask app served by gunicorn (2 workers × 4 threads), non-root, read-only root filesystem. |
 | Helm chart | `charts/orders-api` | Deployment, Service, ServiceAccount, optional HPA and PodDisruptionBudget. |
 | CI | `.github/workflows/ci.yml` | 6 jobs on every PR and on pushes to `main`. |
-| Release | `.github/workflows/release.yml` | On merges touching `app/`: test, build, push to ECR via OIDC, commit the new tag to `values-dev.yaml`. |
+| Release | `.github/workflows/release.yml` | On merges touching `app/`: test, build, push to ECR via OIDC, commit the new tag to `orders-api/values-dev.yaml` on the `env/dev` branch. |
 | PR assistant | `.github/workflows/claude.yml` | `@claude` in a PR or issue comment runs Claude Code in Actions with the same config. |
 | Agent config | `.claude/` | Context (`CLAUDE.md`), permissions, hooks, skills, subagents, commands. |
 | Plugin | `plugin/`, `.claude-plugin/marketplace.json` | `.claude/` packaged for installation in other repos. Generated, never hand-edited. |
@@ -112,6 +112,7 @@ in another namespace, cannot use the role.
 | **One cluster per environment** | Blast-radius isolation between dev and prod | Two control planes to pay for |
 | **Private nodes, public subnets only for LBs/NAT** | Nodes are never directly reachable | NAT gateway cost |
 | **Hooks over instructions** | Instructions can be ignored; hooks are enforced in code | Pattern matching has limits (see [Claude Code setup](claude-code.md#limits)) |
-| **GitOps (pull) delivery** | CI never needs Kubernetes API access, so dev's API stays allow-listed; git is the record of what runs | Up to ~3 min sync delay; the bot commits tag bumps to `main` |
+| **GitOps (pull) delivery** | CI never needs Kubernetes API access, so dev's API stays allow-listed; git is the record of what runs | Up to ~3 min sync delay |
+| **Deploy tags on their own branch (`env/dev`)** | `main` can require PRs and green checks with no bypass for bots | What runs in dev = chart on `main` + tag on `env/dev` |
 | **Account ID kept out of git** | The repo is public; Terraform injects the registry URL and role ARN into the Argo CD Application | Values live in two places (git + Terraform) |
 | **Plugin generated from `.claude/`** | One source of truth; CI fails if `plugin/` drifts | Must run `make plugin` after editing `.claude/` |

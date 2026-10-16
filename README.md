@@ -147,7 +147,7 @@ CRITICAL | Deployment/bad:web | privileged container
 
 ## Documentation
 
-Full docs live in [`docs/`](docs/README.md): [architecture](docs/architecture.md) · [API](docs/api.md) · [infrastructure](docs/infrastructure.md) · [deployment](docs/deployment.md) · [CI/CD](docs/ci-cd.md) · [Claude Code setup](docs/claude-code.md) · [operations](docs/operations.md) · [development](docs/development.md).
+Security reports: see [`SECURITY.md`](SECURITY.md). Full docs live in [`docs/`](docs/README.md): [architecture](docs/architecture.md) · [API](docs/api.md) · [infrastructure](docs/infrastructure.md) · [deployment](docs/deployment.md) · [CI/CD](docs/ci-cd.md) · [Claude Code setup](docs/claude-code.md) · [operations](docs/operations.md) · [development](docs/development.md).
 
 ---
 
@@ -169,7 +169,8 @@ claude                                   # start the agent in this repo
 Dev is delivered by Argo CD: a human runs `terraform/bootstrap` once, sets two GitHub
 repository variables, and applies `terraform/envs/dev` (which installs Argo CD). From then
 on, every merge that touches `app/` builds an image in GitHub Actions, pushes it to ECR
-through OIDC (no stored keys) and commits the new tag; Argo CD deploys it. Step by step:
+through OIDC (no stored keys) and commits the new tag to the `env/dev` branch; Argo CD
+deploys it. Step by step:
 [`docs/deployment.md`](docs/deployment.md).
 
 ### Demo scenarios

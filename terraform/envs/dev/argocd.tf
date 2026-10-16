@@ -1,7 +1,9 @@
 # GitOps delivery for dev: Argo CD runs in the cluster and pulls the orders-api
 # chart from GitHub, so CI never needs network access to the Kubernetes API.
-# CI pushes images to ECR and commits the new tag to charts/orders-api/values-dev.yaml;
-# Argo CD notices the commit and rolls it out.
+# CI pushes images to ECR and commits the new tag to orders-api/values-dev.yaml on
+# the env/dev branch, so main can stay fully protected; Argo CD notices the commit
+# and rolls it out. The Application has two sources: the chart from main, and the
+# dev values (referenced as $values) from env/dev.
 
 data "aws_ecr_repository" "orders_api" {
   name = var.ecr_repository # created by terraform/bootstrap
@@ -37,21 +39,28 @@ resource "helm_release" "orders_api_app" {
       (var.orders_api_release) = {
         namespace = "argocd"
         project   = "default"
-        source = {
-          repoURL        = var.gitops_repo_url
-          targetRevision = var.gitops_revision
-          path           = "charts/orders-api"
-          helm = {
-            valueFiles = ["values.yaml", "values-dev.yaml"]
-            valuesObject = {
-              image = { repository = data.aws_ecr_repository.orders_api.repository_url }
-              serviceAccount = {
-                annotations = { "eks.amazonaws.com/role-arn" = module.orders_table.role_arn }
+        sources = [
+          {
+            repoURL        = var.gitops_repo_url
+            targetRevision = var.gitops_revision
+            path           = "charts/orders-api"
+            helm = {
+              valueFiles = ["values.yaml", "$values/orders-api/values-dev.yaml"]
+              valuesObject = {
+                image = { repository = data.aws_ecr_repository.orders_api.repository_url }
+                serviceAccount = {
+                  annotations = { "eks.amazonaws.com/role-arn" = module.orders_table.role_arn }
+                }
+                ordersTable = { name = module.orders_table.table_name }
               }
-              ordersTable = { name = module.orders_table.table_name }
             }
-          }
-        }
+          },
+          {
+            repoURL        = var.gitops_repo_url
+            targetRevision = var.gitops_values_revision
+            ref            = "values"
+          },
+        ]
         destination = {
           server    = "https://kubernetes.default.svc"
           namespace = var.orders_api_namespace

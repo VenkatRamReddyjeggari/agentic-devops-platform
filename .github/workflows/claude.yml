@@ -17,7 +17,12 @@ permissions:
 
 jobs:
   claude:
-    if: contains(github.event.comment.body, '@claude')
+    # Public repo: only the owner and collaborators may start a run, so strangers
+    # can't spend the API key or get a token with write access. (The action also
+    # checks the commenter's permission; this is a second, earlier lock.)
+    if: >-
+      contains(github.event.comment.body, '@claude') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
