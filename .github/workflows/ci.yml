@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   app:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,7 +21,7 @@ jobs:
       - run: cd app && pytest -q
 
   terraform:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         env: [dev, prod]
@@ -33,7 +33,7 @@ jobs:
       - run: terraform -chdir=terraform/envs/${{ matrix.env }} validate
 
   helm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
@@ -53,7 +53,7 @@ jobs:
           bash .claude/skills/k8s-manifest-review/scripts/check-manifests.sh prod.yaml
 
   claude-config:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Shellcheck hooks
@@ -64,7 +64,7 @@ jobs:
         run: bash scripts/build-plugin.sh && git diff --exit-code plugin/
 
   security:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       # Pinned by commit SHA (v0.36.0); unprefixed tags like 0.28.0 no longer exist.
