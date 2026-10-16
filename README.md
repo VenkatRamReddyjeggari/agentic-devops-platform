@@ -174,12 +174,13 @@ deploys it. Step by step:
 [`docs/deployment.md`](docs/deployment.md).
 
 ### Demo scenarios
-See [`docs/demo-walkthrough.md`](docs/demo-walkthrough.md) for scripted demos:
+See [`docs/demo-walkthrough.md`](docs/demo-walkthrough.md) for a scripted 12-minute demo:
 
-1. **Guardrail demo**: ask the agent to "apply the prod Terraform" and watch the hook block it and the agent fall back to a plan.
-2. **Feature with review**: "Add a PodDisruptionBudget to dev and open a PR". Uses a skill, a subagent and the GitHub MCP server.
-3. **Pre-deploy gate**: `/deploy-check orders-api prod`.
-4. **Incident triage**: "orders-api pods are CrashLooping in dev" with the read-only triage skill.
+1. **Guardrails**: ask the agent to apply prod Terraform or read `.env`, and watch permissions and hooks block it.
+2. **Feature end to end**: "Enable a PodDisruptionBudget in dev and open a PR". Uses a skill, a subagent and a PR gated by 7 required checks.
+3. **GitHub rules**: a direct `git push origin main` is rejected, even for the owner.
+4. **Pre-deploy gate**: `/deploy-check orders-api prod`.
+5. **GitOps** (with AWS): merge → image built and pushed via OIDC → Argo CD deploys it.
 
 ### Install the plugin in another repo
 ```bash
