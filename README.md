@@ -200,7 +200,7 @@ See [`docs/demo-walkthrough.md`](docs/demo-walkthrough.md) for scripted demos:
 - **Secrets never in the repo.** MCP token via env var; hooks deny edits to `.env`, `*.pem`; permissions deny reading them.
 
 - **orders-api stores orders in DynamoDB.** On-demand billing (~$0 idle), point-in-time recovery and deletion protection on. Pods reach it through IRSA (no keys, no passwords), and the role may only `GetItem`/`PutItem`/`Scan` that one table. Pods are stateless, so replicas and gunicorn workers scale freely. Order IDs are UUIDs. `GET /orders` scans the whole table, which is fine at demo scale; add pagination and a GSI on `created_at` before real volume. Locally, tests run against a mocked DynamoDB (moto); point `AWS_ENDPOINT_URL` at DynamoDB Local to run the app by hand.
-- **Prod is not wired to DynamoDB yet.** `terraform/envs/prod` and `values-prod.yaml` are protected and change only through an approved PR. Until then, a prod deploy of this version stays not-ready.
+- **Prod has its own table** (`platform-prod-orders`), set in `values-prod.yaml`. Deploy prod the same way as dev, with `-f charts/orders-api/values-prod.yaml` and the role ARN from `terraform/envs/prod` output `orders_api_role_arn`; the table name is already in the values file. Apply the prod Terraform before deploying the app, or the pods stay not-ready.
 
 ## Tech stack
 AWS (VPC, EKS, IRSA, DynamoDB, KMS, ECR) · Terraform · Kubernetes · Helm · Docker · Python/Flask · GitHub Actions · Trivy · kubeconform · Claude Code (skills, subagents, hooks, MCP, plugins)
