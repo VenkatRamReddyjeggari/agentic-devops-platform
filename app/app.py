@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import threading
 import time
 from itertools import count
 
@@ -10,8 +11,12 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
+# In-memory store: state lives in one process. Gunicorn runs a single worker
+# (threads share this dict) so a pod answers consistently, but data is per pod
+# and lost on restart. Replace with a real datastore before relying on it.
 _ORDERS: dict[int, dict] = {}
 _IDS = count(1)
+_LOCK = threading.Lock()
 _STARTED = time.time()
 VERSION = os.getenv("APP_VERSION", "dev")
 
@@ -30,7 +35,9 @@ def readyz():
 
 @app.get("/orders")
 def list_orders():
-    return jsonify(list(_ORDERS.values()))
+    with _LOCK:
+        orders = list(_ORDERS.values())
+    return jsonify(orders)
 
 
 @app.post("/orders")
@@ -42,9 +49,10 @@ def create_order():
         return jsonify(error="'item' is required"), 400
     if not isinstance(qty, int) or qty < 1:
         return jsonify(error="'quantity' must be a positive integer"), 400
-    order_id = next(_IDS)
-    order = {"id": order_id, "item": item.strip(), "quantity": qty, "status": "created"}
-    _ORDERS[order_id] = order
+    with _LOCK:
+        order_id = next(_IDS)
+        order = {"id": order_id, "item": item.strip(), "quantity": qty, "status": "created"}
+        _ORDERS[order_id] = order
     return jsonify(order), 201
 
 

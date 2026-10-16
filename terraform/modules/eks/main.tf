@@ -1,3 +1,6 @@
+# Nodes need unrestricted egress (via NAT) to pull images and reach AWS APIs;
+# the upstream module's node security group allows it by design.
+#trivy:ignore:AWS-0104
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 20.0"
@@ -9,6 +12,7 @@ module "eks" {
   subnet_ids = var.subnet_ids
 
   cluster_endpoint_public_access           = var.endpoint_public_access
+  cluster_endpoint_public_access_cidrs     = var.endpoint_public_access_cidrs
   enable_cluster_creator_admin_permissions = true
   enable_irsa                              = true
 
@@ -34,4 +38,11 @@ module "eks" {
   }
 
   tags = var.tags
+}
+
+check "public_endpoint_has_allowlist" {
+  assert {
+    condition     = !var.endpoint_public_access || length(var.endpoint_public_access_cidrs) > 0
+    error_message = "endpoint_public_access is true but endpoint_public_access_cidrs is empty."
+  }
 }

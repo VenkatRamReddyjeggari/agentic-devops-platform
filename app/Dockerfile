@@ -12,4 +12,6 @@ COPY --from=build /install /usr/local
 COPY app.py .
 USER 10001
 EXPOSE 8080
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--worker-tmp-dir", "/tmp", "app:app"]
+# One worker: orders are held in process memory, so multiple workers would each
+# see a different store. Threads give concurrency while sharing that store.
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "4", "--worker-tmp-dir", "/tmp", "app:app"]

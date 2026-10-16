@@ -98,8 +98,12 @@ guard-destructive.sh
 protect-prod.sh
   PASS  asks for prod tf edit
   PASS  denies .env edit
-17 passed, 0 failed
+60 passed, 0 failed
 ```
+
+Both PreToolUse hooks **fail closed**: if `jq` is missing or the script errors, the tool call is blocked (exit 2) rather than allowed. `protect-prod.sh` also inspects Bash commands, so `sed -i`, `cp` or `>` into `terraform/envs/prod/` or `values-prod.yaml` needs the same human approval as an Edit, and commands that touch `.env`, `*.pem`, `*.key` or `*secret*.tfvars` are denied.
+
+**Limits.** The hooks match patterns; they are not a shell parser. Indirection such as `v=apply; terraform $v` can still get past them, so the last line of defense is credentials: the identity the agent runs as should not have rights to apply Terraform or delete cluster resources.
 
 The Kubernetes policy checker used by the skill also runs in CI, so the agent and the pipeline enforce **the same standard**:
 
@@ -147,6 +151,8 @@ Claude Code, `jq`, Python 3.12, and (for full checks) Terraform ≥ 1.6, Helm 3,
 git clone https://github.com/VenkatRamReddyjeggari/agentic-devops-platform && cd agentic-devops-platform
 export GITHUB_PAT=<fine-grained token>   # for the GitHub MCP server
 make check                               # tests, fmt, validate, lint, policy, hook tests
+# dev's public Kubernetes API is restricted to an allow-list; plan with e.g.
+#   terraform -chdir=terraform/envs/dev plan -var 'api_allowed_cidrs=["203.0.113.10/32"]'
 claude                                   # start the agent in this repo
 ```
 
@@ -173,6 +179,8 @@ See [`docs/demo-walkthrough.md`](docs/demo-walkthrough.md) for scripted demos:
 - **One policy, two enforcers.** `check-manifests.sh` runs in the skill *and* in CI, so humans and the agent are held to the same bar.
 - **Plugin generated, not hand-maintained.** `.claude/` is the source of truth; `scripts/build-plugin.sh` produces `plugin/` and CI fails if it drifts.
 - **Secrets never in the repo.** MCP token via env var; hooks deny edits to `.env`, `*.pem`; permissions deny reading them.
+
+- **orders-api is a demo service.** Orders live in process memory: gunicorn runs one worker (with threads) so a pod answers consistently, but each pod has its own data and loses it on restart. Back it with a real datastore (e.g. DynamoDB via IRSA) before running more than one replica for real.
 
 ## Tech stack
 AWS (VPC, EKS, IRSA, KMS, ECR) · Terraform · Kubernetes · Helm · Docker · Python/Flask · GitHub Actions · Trivy · kubeconform · Claude Code (skills, subagents, hooks, MCP, plugins)

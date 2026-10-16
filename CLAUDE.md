@@ -18,7 +18,7 @@ skills, subagents, hooks, commands and MCP. Architecture diagram: `README.md`.
 - Terraform: `terraform -chdir=terraform/envs/dev init -backend=false && terraform -chdir=terraform/envs/dev validate`
 - Format: `terraform fmt -recursive terraform/`
 - Helm: `helm lint charts/orders-api && helm template charts/orders-api | kubeconform -strict -summary`
-- Security: `trivy config terraform/ charts/` and `trivy fs app/`
+- Security: `trivy config --skip-dirs '**/.terraform' terraform/`, `trivy config charts/` and `trivy fs app/` (trivy config takes one directory per run)
 - Everything at once: `make check`
 
 ## Coding standards

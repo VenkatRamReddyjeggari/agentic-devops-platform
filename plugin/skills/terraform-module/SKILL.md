@@ -28,7 +28,7 @@ terraform/modules/<name>/
 terraform fmt -recursive terraform/
 terraform -chdir=terraform/envs/dev init -backend=false
 terraform -chdir=terraform/envs/dev validate
-trivy config terraform/
+trivy config --skip-dirs '**/.terraform' terraform/
 ```
 Never run `apply` or `destroy`. Hooks will block it; ask the human to apply after review.
 

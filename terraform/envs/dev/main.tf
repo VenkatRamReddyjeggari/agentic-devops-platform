@@ -15,6 +15,8 @@ module "vpc" {
   single_nat_gateway = true
 }
 
+# Dev keeps a public API endpoint for convenience, limited to api_allowed_cidrs.
+#trivy:ignore:AWS-0040
 module "eks" {
   source = "../../modules/eks"
 
@@ -23,6 +25,8 @@ module "eks" {
   vpc_id                 = module.vpc.vpc_id
   subnet_ids             = module.vpc.private_subnet_ids
   endpoint_public_access = true
+
+  endpoint_public_access_cidrs = var.api_allowed_cidrs
 
   node_capacity_type = "SPOT"
   node_min_size      = 1
