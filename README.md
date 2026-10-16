@@ -144,6 +144,12 @@ CRITICAL | Deployment/bad:web | privileged container
 
 ---
 
+## Documentation
+
+Full docs live in [`docs/`](docs/README.md): [architecture](docs/architecture.md) · [API](docs/api.md) · [infrastructure](docs/infrastructure.md) · [deployment](docs/deployment.md) · [CI/CD](docs/ci-cd.md) · [Claude Code setup](docs/claude-code.md) · [operations](docs/operations.md) · [development](docs/development.md).
+
+---
+
 ## Try it
 
 ### Prerequisites
