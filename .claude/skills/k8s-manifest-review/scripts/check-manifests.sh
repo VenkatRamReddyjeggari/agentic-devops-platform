@@ -18,6 +18,16 @@ def report(sev, res, msg):
 with open(sys.argv[1]) as fh:
     docs = [d for d in yaml.safe_load_all(fh) if d]
 
+# The same kind/namespace/name twice makes `helm install` fail; kubeconform
+# validates each document alone and cannot see it.
+seen = set()
+for doc in docs:
+    meta = doc.get("metadata") or {}
+    key = (doc.get("kind", ""), meta.get("namespace", ""), meta.get("name", ""))
+    if key in seen:
+        report("HIGH", f"{key[0]}/{key[2]}", "duplicate resource (same kind and name)")
+    seen.add(key)
+
 workload_kinds = {"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}
 for doc in docs:
     kind = doc.get("kind", "")
