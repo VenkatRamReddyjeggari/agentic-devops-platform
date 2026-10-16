@@ -47,7 +47,7 @@ cd app && python app.py            # http://localhost:8080
 | Path | Contents |
 |---|---|
 | `app/` | `app.py`, `test_app.py`, `requirements.txt` (runtime + test deps), `Dockerfile` (installs runtime deps only) |
-| `charts/orders-api/` | `Chart.yaml`, `values.yaml` (defaults), `values-dev.yaml` (dev image tag, bumped by CI), `values-prod.yaml` (prod, protected), `templates/` |
+| `charts/orders-api/` | `Chart.yaml`, `values.yaml` (defaults), `values-prod.yaml` (prod, protected), `templates/`. Dev's image tag is on the `env/dev` branch, written by CI |
 | `terraform/` | `bootstrap/` (once per account), `modules/{vpc,eks,orders-table}`, `envs/{dev,prod}` (dev includes `argocd.tf`) |
 | `.github/workflows/` | `ci.yml`, `release.yml`, `claude.yml` |
 | `.claude/` | Agent config: `settings.json`, `hooks/`, `skills/`, `agents/`, `commands/` |
@@ -97,7 +97,8 @@ From `CLAUDE.md`:
 4. Commit as `<type>(<scope>): <summary>`, for example `feat(chart): add HPA`.
    Types: `feat`, `fix`, `docs`, `ci`, `chore`, `refactor`, `test`.
 5. Push and open a PR. Prod changes include `terraform plan` output.
-6. Merge when CI is green and the PR is reviewed.
+6. Merge when CI is green and the PR is reviewed. `main` accepts changes only through
+   pull requests with passing checks ([repository security](repository-security.md)).
 
 ### Definition of done
 

@@ -130,7 +130,8 @@ Outputs: `table_name`, `table_arn`, `role_arn`. Accepted finding: `AWS-0025`
 | `orders_api_release` | `orders-api` | `orders-api` | Must match the Helm release name (dev: the Argo CD Application name) |
 | `ecr_repository` | `orders-api` | (n/a) | Looked up with a data source; created by bootstrap |
 | `gitops_repo_url` | this GitHub repo | (n/a) | Repository Argo CD pulls from |
-| `gitops_revision` | `main` | (n/a) | Branch/tag Argo CD tracks |
+| `gitops_revision` | `main` | (n/a) | Branch/tag Argo CD takes the chart from |
+| `gitops_values_revision` | `env/dev` | (n/a) | Branch holding `orders-api/values-dev.yaml` (the image tag) |
 
 ### Outputs
 
@@ -146,9 +147,11 @@ Outputs: `table_name`, `table_arn`, `role_arn`. Accepted finding: `AWS-0025`
 
 `argocd.tf` installs chart `argo-cd` 10.9.6 (Argo CD v3.5.3; Dex and notifications off)
 into namespace `argocd`, then chart `argocd-apps` 2.0.6 with one Application named after
-`orders_api_release`. The Application renders `charts/orders-api` with `values.yaml` +
-`values-dev.yaml` and a `valuesObject` carrying the ECR repository URL, the IRSA role ARN
-and the table name. Sync is automated (`prune`, `selfHeal`, `CreateNamespace=true`).
+`orders_api_release`. The Application has two sources: `charts/orders-api` at
+`gitops_revision` (`main`), and the `env/dev` branch (`gitops_values_revision`) referenced
+as `$values`. Helm renders the chart with `values.yaml`, then
+`$values/orders-api/values-dev.yaml` (the image tag), then a `valuesObject` carrying the ECR
+repository URL, the IRSA role ARN and the table name. Sync is automated (`prune`, `selfHeal`, `CreateNamespace=true`).
 
 The Helm provider authenticates with `aws_eks_cluster_auth` (a short-lived token from the
 caller's AWS credentials), so whoever runs `terraform apply` must be able to reach the

@@ -51,7 +51,13 @@ variable "gitops_repo_url" {
 }
 
 variable "gitops_revision" {
-  description = "Branch, tag or commit Argo CD tracks"
+  description = "Branch, tag or commit Argo CD takes the orders-api chart from"
   type        = string
   default     = "main"
+}
+
+variable "gitops_values_revision" {
+  description = "Branch holding orders-api/values-dev.yaml (the image tag); written by the release workflow"
+  type        = string
+  default     = "env/dev"
 }

@@ -10,7 +10,7 @@ skills, subagents, hooks, commands and MCP. Architecture diagram: `README.md`.
 - `terraform/modules/` – reusable modules (`vpc`, `eks`)
 - `terraform/bootstrap/` – once-per-account state bucket, ECR, GitHub OIDC CI role (local state)
 - `terraform/envs/dev|prod/` – environment roots (remote state, per-env tfvars); dev installs Argo CD
-- `charts/orders-api/values-dev.yaml` – dev image tag, bumped by `release.yml`; Argo CD deploys it
+- Branch `env/dev` (file `orders-api/values-dev.yaml`) – dev image tag, written by `release.yml`; Argo CD deploys it. Never edit by hand; `main` is protected and takes PRs only
 - `.github/workflows/` – CI (`ci.yml`), image release (`release.yml`) and the `@claude` PR assistant (`claude.yml`)
 - `.claude/` – Claude Code config: skills, agents, commands, hooks, settings
 - `plugin/` – the same Claude Code setup packaged as an installable plugin

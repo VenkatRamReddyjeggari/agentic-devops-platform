@@ -52,12 +52,12 @@ but answers order requests with 503, so watch logs for `DynamoDB call failed`.
 | `503`; logs show `ResourceNotFoundException` | Table name wrong, or Terraform not applied | `aws dynamodb describe-table --table-name <name>` | Apply Terraform; fix `ordersTable.name` |
 | `503`; logs show timeouts or `EndpointConnectionError` | No egress (NAT) or wrong region | `AWS_REGION` in the pod; NAT gateway status | Fix routing; set `ordersTable.region` |
 | `503`; logs show `ThrottlingException` | Burst above on-demand limits | CloudWatch DynamoDB metrics | Usually transient; retries absorb short bursts |
-| `ImagePullBackOff` with tag `bootstrap` | No image built yet | `values-dev.yaml` | Run the **release** workflow |
+| Argo CD: `unable to resolve 'env/dev'` | No release has run yet, so the branch doesn't exist | Branches on GitHub | Run the **release** workflow |
 | `ImagePullBackOff` | Wrong tag, image built for arm64, or ECR permissions | `kubectl describe pod` events | Re-run **release**; check the tag exists in ECR |
 | Argo CD app `OutOfSync` / `Unknown` | Repo unreachable, bad chart change | `kubectl describe application orders-api -n argocd` | Fix the chart in git; check `gitops_repo_url` / `gitops_revision` |
 | release workflow skipped | `AWS_ROLE_ARN` variable not set | Actions run log | Set the repository variables |
 | release fails at AWS credentials | Role trust doesn't match repo/branch, or OIDC provider missing | Step log (`Not authorized to perform sts:AssumeRoleWithWebIdentity`) | Check `github_repository` / `release_branch` in bootstrap |
-| release fails at the bump push | Branch protection on `main` | Step log | Allow `github-actions[bot]`, or change the step to open a PR |
+| release fails at the bump push | A ruleset on `env/*` blocks pushes (it should only block deletion and force pushes) | Step log | Fix the `protect-env-branches` ruleset ([repository security](repository-security.md#2-ruleset-for-deploy-branches)) |
 | `CrashLoopBackOff` | App error at start | `kubectl logs --previous` | Fix and redeploy, or roll back |
 | `OOMKilled` | Memory limit too low (2 workers + boto3) | `kubectl describe pod`, `kubectl top pod` | Raise `resources.limits.memory` |
 | Pods `Pending` | No node capacity | `kubectl describe pod`, node group size | Raise node group max, or lower requests |
@@ -65,8 +65,9 @@ but answers order requests with 503, so watch logs for `DynamoDB call failed`.
 
 ## Roll back
 
-Dev is managed by Argo CD, so roll back in git: revert the
-`chore(release): deploy orders-api <tag> to dev` commit (via a PR). For an immediate
+Dev is managed by Argo CD, so roll back in git: on the `env/dev` branch, revert the
+`chore(release): deploy orders-api <tag> to dev` commit and push
+(`git switch env/dev && git revert <sha> && git push`). For an immediate
 rollback use **History and rollback** in the Argo CD UI, then revert in git so the next
 sync doesn't roll forward again. Don't use `helm rollback` on dev: Argo CD would undo it.
 

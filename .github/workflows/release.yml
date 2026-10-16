@@ -1,5 +1,7 @@
 # Build the orders-api image, push it to ECR, and hand it to Argo CD by
-# committing the new tag to charts/orders-api/values-dev.yaml.
+# committing the new tag to orders-api/values-dev.yaml on the env/dev branch.
+# The tag lives on its own branch so main can require pull requests with no
+# bypass for bots.
 #
 # Setup (once, after `terraform -chdir=terraform/bootstrap apply`): add repository
 # variables AWS_ROLE_ARN (output ci_role_arn) and AWS_REGION. Until AWS_ROLE_ARN
@@ -63,27 +65,46 @@ jobs:
     needs: build-push
     runs-on: ubuntu-24.04
     permissions:
-      contents: write # commit the new tag; pushes made with GITHUB_TOKEN do not re-trigger workflows
+      contents: write # push to env/dev; pushes made with GITHUB_TOKEN do not re-trigger workflows
+    env:
+      BRANCH: env/dev
+      FILE: orders-api/values-dev.yaml
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: main
 
       - name: Point dev at the new image
         env:
           TAG: ${{ needs.build-push.outputs.tag }}
+          SRC: ${{ github.sha }}
         run: |
           set -euo pipefail
-          f=charts/orders-api/values-dev.yaml
-          sed -i -E "s/^(  tag: ).*/\1\"${TAG}\"/; s/^(  APP_VERSION: ).*/\1\"${TAG}\"/" "$f"
-          grep -q "tag: \"${TAG}\"" "$f"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$f"
-          git diff --cached --quiet && { echo "already at ${TAG}"; exit 0; }
+
+          # env/dev holds only the deploy values; create it as an empty orphan branch the first time.
+          if git fetch --depth=1 origin "$BRANCH"; then
+            git switch -C "$BRANCH" FETCH_HEAD
+          else
+            git switch --orphan "$BRANCH"
+          fi
+
+          mkdir -p "$(dirname "$FILE")"
+          cat > "$FILE" <<EOF
+          # Managed by .github/workflows/release.yml on main. Do not edit by hand.
+          # Argo CD layers this over charts/orders-api/values.yaml for dev.
+          # Built from ${SRC}.
+          image:
+            tag: "${TAG}"
+          env:
+            APP_VERSION: "${TAG}"
+          EOF
+
+          git add "$FILE"
+          git diff --cached --quiet && { echo "dev already at ${TAG}"; exit 0; }
           git commit -m "chore(release): deploy orders-api ${TAG} to dev"
           for attempt in 1 2 3; do
-            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            git push origin "HEAD:${BRANCH}" && exit 0
             sleep $((attempt * 5))
+            git pull --rebase origin "$BRANCH" || true
           done
           exit 1

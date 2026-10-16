@@ -4,9 +4,9 @@ From an empty AWS account to `orders-api` running in **dev**, delivered by GitOp
 
 ```
 merge to main ─► release.yml: test → build image → push to ECR (OIDC, no keys)
-                              └─► commit new tag to charts/orders-api/values-dev.yaml
+                              └─► commit new tag to env/dev branch (orders-api/values-dev.yaml)
                                                 │
-EKS dev:  Argo CD ◄──── pulls chart + values from GitHub ┘
+EKS dev:  Argo CD ◄──── pulls chart (main) + tag (env/dev) ┘
             └─► syncs orders-api (Helm), prunes and self-heals drift
 ```
 
@@ -79,12 +79,12 @@ branch through OIDC, so the ARN is useless to anyone else.
 
 GitHub → **Actions → release → Run workflow** (branch `main`). It runs the tests, builds
 a `linux/amd64` image, pushes `orders-api:<12-char git sha>` to ECR, and commits that tag
-to `charts/orders-api/values-dev.yaml`. After this, every merge that touches `app/` does
-the same automatically.
+to `orders-api/values-dev.yaml` on the **`env/dev`** branch (creating the branch on the
+first run). After this, every merge that touches `app/` does the same automatically.
 
-Until this first run, `values-dev.yaml` holds the placeholder tag `bootstrap`; if dev is
-created before the first image exists, the pods sit in `ImagePullBackOff` until the
-release workflow runs, then recover on their own.
+Run this before step 5: until the `env/dev` branch exists, the Argo CD Application reports
+`unable to resolve 'env/dev'` and deploys nothing. It recovers on its own once the branch
+appears.
 
 ## 5. Create dev
 
@@ -100,9 +100,9 @@ One apply creates the VPC, the EKS cluster and nodes, the orders table and its I
 Terraform reaches the new cluster with a token from your AWS credentials, so your IP must
 be in `api_allowed_cidrs`.
 
-The Application points Argo CD at `charts/orders-api` on `main` with `values.yaml` +
-`values-dev.yaml`, and injects the ECR repository URL, the IRSA role ARN and the table
-name (so the account ID never lands in git). Sync is automated, with prune and self-heal.
+The Application points Argo CD at `charts/orders-api` on `main` plus
+`orders-api/values-dev.yaml` on `env/dev`, and injects the ECR repository URL, the IRSA
+role ARN and the table name (so the account ID never lands in git). Sync is automated, with prune and self-heal.
 
 ## 6. Verify
 
@@ -127,22 +127,22 @@ in as `admin` with the password from `$TF output -raw argocd_password_command`.
 ## Everyday flow
 
 1. Open a PR that changes `app/`; CI runs.
-2. Merge. `release.yml` builds and pushes the image and commits the new tag to
-   `values-dev.yaml` as `github-actions[bot]`.
+2. Merge. `release.yml` builds and pushes the image and commits the new tag to the
+   `env/dev` branch as `github-actions[bot]`.
 3. Argo CD sees the commit (it polls every ~3 minutes) and rolls it out.
 
-Chart changes (templates, `values.yaml`, `values-dev.yaml`) also deploy to dev as soon as
-they reach `main`, because Argo CD tracks the branch.
-
-If you enable branch protection on `main`, allow `github-actions[bot]` to push, or switch
-the bump step to open a PR instead.
+Chart changes (templates, `values.yaml`) also deploy to dev as soon as they reach `main`,
+because Argo CD tracks the branch. Because the tag is written to `env/dev`, `main` can be
+fully protected ([repository security](repository-security.md)).
 
 ## Rollback
 
-Revert the tag commit and Argo CD rolls back:
+Revert the tag commit on `env/dev` and Argo CD rolls back:
 
 ```bash
-git revert <sha of "chore(release): deploy orders-api …">   # via a PR
+git fetch origin env/dev && git switch env/dev
+git revert <sha of "chore(release): deploy orders-api …">
+git push origin env/dev
 ```
 
 For an immediate rollback, use the Argo CD UI (**History and rollback**). Automated sync

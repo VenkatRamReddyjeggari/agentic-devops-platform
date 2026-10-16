@@ -14,6 +14,7 @@ engineering work behind code-enforced guardrails.
 | [Claude Code setup](claude-code.md) | Understand the agent: guardrails, skills, subagents, commands, plugin |
 | [Operations runbook](operations.md) | Check health, troubleshoot, roll back, estimate cost, tear down |
 | [Development guide](development.md) | Set up a laptop, run tests, follow repo conventions, open a PR |
+| [Repository security](repository-security.md) | Apply the GitHub settings that protect `main`, secrets and Actions |
 | [Demo walkthrough](demo-walkthrough.md) | Show the agent and its guardrails in a 10-minute demo |
 
 ## The project in one minute
@@ -23,8 +24,8 @@ engineering work behind code-enforced guardrails.
   credentials bound to one Kubernetes ServiceAccount): no keys, no passwords.
 - It runs on **EKS** in private subnets of a dedicated **VPC**, one cluster per
   environment (`dev`, `prod`), all defined in **Terraform**.
-- **Helm** packages it; `values.yaml` holds defaults, `values-dev.yaml` dev's image tag,
-  `values-prod.yaml` prod overrides.
+- **Helm** packages it; `values.yaml` holds defaults, `values-prod.yaml` prod overrides,
+  and dev's image tag lives on the `env/dev` branch.
 - **GitOps delivery (dev):** merging app changes builds the image in GitHub Actions,
   pushes it to **ECR** and commits the new tag; **Argo CD** in the cluster pulls and
   deploys it. Nothing outside the cluster needs access to the Kubernetes API.

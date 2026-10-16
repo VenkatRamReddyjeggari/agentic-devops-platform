@@ -1,0 +1,12 @@
+# Owners are requested for review automatically on matching changes (e.g. Dependabot
+# and contributor PRs). Turn on "Require review from Code Owners" in the main ruleset
+# only once there is a second maintainer: GitHub never lets you approve your own PR.
+
+*                               @VenkatRamReddyjeggari
+
+# Highest-risk paths, listed explicitly so they keep an owner if the default changes.
+/terraform/                     @VenkatRamReddyjeggari
+/charts/orders-api/values-prod.yaml @VenkatRamReddyjeggari
+/.github/                       @VenkatRamReddyjeggari
+/.claude/                       @VenkatRamReddyjeggari
+/CLAUDE.md                      @VenkatRamReddyjeggari

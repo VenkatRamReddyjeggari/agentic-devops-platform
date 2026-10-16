@@ -1,9 +1,0 @@
-# Dev overrides, applied by Argo CD on top of values.yaml.
-# image.tag and env.APP_VERSION are updated by the release workflow on every
-# build; do not edit them by hand. Registry and IRSA role are injected by
-# Terraform (terraform/envs/dev/argocd.tf) so the account ID stays out of git.
-image:
-  tag: "bootstrap"
-
-env:
-  APP_VERSION: "bootstrap"
