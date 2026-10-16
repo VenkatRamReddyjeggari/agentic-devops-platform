@@ -22,6 +22,25 @@ jobs:
       - name: Server smoke test (runs the Dockerfile's CMD)
         run: bash scripts/smoke-test.sh
 
+  image:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the container image
+        run: docker build -t orders-api:ci app/
+      - name: Smoke test the container under pod security settings
+        run: SMOKE_IMAGE=orders-api:ci bash scripts/smoke-test.sh
+      # Same pinned action as the security job; fails on fixable HIGH/CRITICAL CVEs
+      # in the base image or Python packages.
+      - name: Scan the image for vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: orders-api:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
   terraform:
     runs-on: ubuntu-24.04
     strategy:

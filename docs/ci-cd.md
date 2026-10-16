@@ -10,6 +10,7 @@ Triggers: every `pull_request`, and `push` to `main`. Permissions: `contents: re
 | Job | Steps | Fails when |
 |---|---|---|
 | **app** | Python 3.12 · `pip install -r app/requirements-dev.txt ruff` · `ruff check app/` · `pytest -q` · `scripts/smoke-test.sh` (starts gunicorn with the Dockerfile's `CMD` and checks `/healthz`, `/readyz`, a 404 and a 400) | Lint errors, any of the 19 tests fail, or the real server doesn't boot and answer |
+| **image** | `docker build` · run the container with the pod's restrictions (read-only root filesystem, UID 10001, all capabilities dropped, no privilege escalation) and smoke-test it, also checking it really runs as UID 10001 and can't write its root filesystem · Trivy image scan (HIGH/CRITICAL with a fix available) | The Dockerfile doesn't build, the container doesn't work under pod security settings, or the image has fixable HIGH/CRITICAL vulnerabilities |
 | **terraform** (matrix: `envs/dev`, `envs/prod`, `bootstrap`) | `terraform fmt -check -recursive` · `init -backend=false` · `validate` | Unformatted code or invalid configuration |
 | **helm** | `helm lint` · render dev and prod · `kubeconform -strict` · `check-manifests.sh` on both renders | Lint errors, schema errors, or HIGH/CRITICAL policy findings |
 | **claude-config** | `shellcheck` on hooks and scripts · `tests/test_hooks.sh` (60 cases) · rebuild plugin and `git diff --exit-code plugin/` | Shell issues, a hook regression, or `plugin/` out of sync with `.claude/` |
