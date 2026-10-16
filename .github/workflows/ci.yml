@@ -12,7 +12,7 @@ jobs:
   app:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -26,7 +26,7 @@ jobs:
       matrix:
         root: [envs/dev, envs/prod, bootstrap]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v4
       - run: terraform fmt -check -recursive terraform/
       - run: terraform -chdir=terraform/${{ matrix.root }} init -backend=false
@@ -35,7 +35,7 @@ jobs:
   helm:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: azure/setup-helm@v5
       - name: Install kubeconform
         run: |
@@ -55,7 +55,7 @@ jobs:
   claude-config:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Shellcheck hooks
         run: shellcheck .claude/hooks/*.sh .claude/skills/*/scripts/*.sh scripts/*.sh
       - name: Hook behavior tests
@@ -66,7 +66,7 @@ jobs:
   security:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Pinned by commit SHA (v0.36.0); unprefixed tags like 0.28.0 no longer exist.
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
